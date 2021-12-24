@@ -4,9 +4,13 @@
 @file: code_vnpy.py
 
 """
+import warnings
+
 import six
 from enum import Enum
 from typing import Tuple, List
+
+from functools import lru_cache
 
 
 class Exchange(Enum):
@@ -75,6 +79,7 @@ class Exchange(Enum):
 
 
 def unique_by_vnpy(order_book_ids) -> str or List:
+    warnings.warn('本方法还有漏洞不能完全识别，请使用 aiutils.code.code_by_common 函数', DeprecationWarning)
     if isinstance(order_book_ids, six.string_types):
         return _unique_by_vnpy(order_book_ids)
     elif isinstance(order_book_ids, list):
@@ -83,6 +88,7 @@ def unique_by_vnpy(order_book_ids) -> str or List:
         raise ValueError("order_book_ids should be str or list")
 
 
+@lru_cache()
 def _unique_by_vnpy(vt_symbol):
     symbol, exchange_str = vt_symbol.split(".")
     exchange = Exchange(exchange_str)
@@ -97,7 +103,7 @@ def to_rq_symbol(symbol: str, exchange: Exchange) -> str:
             rq_symbol = f"{symbol}.XSHG"
         else:
             rq_symbol = f"{symbol}.XSHE"
-        # hf20211103 股票编码6位，期权编码8位，债券编码6位
+        # hf20211103 上交所和深交所：股票编码6位，期权编码8位，债券编码6位；因此要做区分
         if len(symbol) == 8:
             rq_symbol = symbol  # rq期权不带交易所后缀
 
