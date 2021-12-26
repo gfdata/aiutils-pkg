@@ -8,7 +8,7 @@ from enum import Enum
 from aiutils.singleton import SingletonType
 
 
-class Exchange(Enum):
+class ExchangeISO(Enum):
     """ 采用ISO market identifier(MIC) 编码
     https://www.iso20022.org/market-identifier-codes
     未纳入的，则返回各平台原始方式
@@ -30,7 +30,7 @@ class Exchange(Enum):
 
 class _ExchangeMap(metaclass=SingletonType):
     # {member.value: member for name, member in Exchange.__members__.items()}
-    _data: dict = {x.value: x for x in Exchange}
+    _data: dict = {x.value: x for x in ExchangeISO}
 
     def update(self, new: dict):
         for k, v in new.items():
@@ -51,37 +51,30 @@ class _ExchangeMap(metaclass=SingletonType):
 """
 ExchangeMap = _ExchangeMap()
 ExchangeMap.update({
-    "SH": Exchange.XSHG,
-    'SZ': Exchange.XSHE,
+    "SH": ExchangeISO.XSHG,
+    'SZ': ExchangeISO.XSHE,
 })
 
 # vnpy 写法
 ExchangeMap.update({
-    'CFFEX': Exchange.CCFX,
-    'SHFE': Exchange.XSGE,
-    'DCE': Exchange.XDCE,
-    'CZCE': Exchange.XZCE,
-    'INE': Exchange.XINE,
-    'SSE': Exchange.XSHG,
-    'SZSE': Exchange.XSHE,
-    'SGE': Exchange.SGEX,
-    'WXE': Exchange.CSSX,
-    'CFETS': Exchange.CFBC,
+    'CFFEX': ExchangeISO.CCFX,
+    'SHFE': ExchangeISO.XSGE,
+    'DCE': ExchangeISO.XDCE,
+    'CZCE': ExchangeISO.XZCE,
+    'INE': ExchangeISO.XINE,
+    'SSE': ExchangeISO.XSHG,
+    'SZSE': ExchangeISO.XSHE,
+    'SGE': ExchangeISO.SGEX,
+    'WXE': ExchangeISO.CSSX,
+    'CFETS': ExchangeISO.CFBC,
 })
 
-# -----------------------------------------------------------------------
-""" 通过品种字母，来找到Exchange
-* 根据underlying对应交易所；硬编码方式，有新合约上市时要此处加上
-
-"""
-UD_EXCHANGE = {
-    'IO': 'XSHE',  # 沪深300etf期权
+# 通过品种字母，来找到Exchange------------------------------------------------------------
+_ud_exchange_commodity = {
+    'S': 'XDCE',  # 大豆（历史上弃用的编码）
 }
-UD_EXCHANGE.update({
-    'S': 'XDCE',  # 大豆（弃用的编码）
-})
 
-UD_EXCHANGE.update({  # 国内商品期货期权，根据underlying对应交易所；硬编码方式，有新合约上市时要此处加上
+_ud_exchange_commodity.update({  # 国内商品期货期权，根据underlying对应交易所；硬编码方式，有新合约上市时要此处加上
     'A': 'XDCE',
     'AG': 'XSGE',
     'AL': 'XSGE',
@@ -159,5 +152,9 @@ UD_EXCHANGE.update({  # 国内商品期货期权，根据underlying对应交易�
     'Y': 'XDCE',
     'ZC': 'XZCE',
     'ZN': 'XSGE',
+})
+
+UD_EXCHANGE = {
+    'IO': 'XSHE',  # 沪深300etf期权
 }
-)
+UD_EXCHANGE.update({k: v for k, v in _ud_exchange_commodity.items()})

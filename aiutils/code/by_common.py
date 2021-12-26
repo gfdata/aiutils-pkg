@@ -8,8 +8,8 @@ from typing import Tuple
 
 import datetime
 from aiutils.cache import MemoryCache
-from .tools import _split_by_iter, sym_dot_exg_split
-from .unique_exchange import ExchangeMap, Exchange, UD_EXCHANGE
+from aiutils.code.tools import _split_by_iter, sym_dot_exg_split
+from aiutils.code.unique_exchange import ExchangeMap, ExchangeISO, UD_EXCHANGE
 
 
 def code_by_common(api_code: str, api_exchange: str = '', exchange_map=ExchangeMap.data, error_raise=False) -> str:
@@ -33,7 +33,7 @@ def code_by_common(api_code: str, api_exchange: str = '', exchange_map=ExchangeM
 
 
 # @lru_cache() # 不支持参数中含有dict 做缓存
-# @MemoryCache.cached_function_result_for_a_time(cache_mb=1024, cache_second=3600 * 12)
+@MemoryCache.cached_function_result_for_a_time(cache_mb=1024, cache_second=3600 * 12)
 def _code_by_common(api_code: str, api_exchange: str = '', exchange_map: dict = ExchangeMap.data) -> str:
     # 没法获取exchange
     if ('.' not in api_code) and (not api_exchange):
@@ -78,7 +78,7 @@ def _code_by_common(api_code: str, api_exchange: str = '', exchange_map: dict = 
         raise ValueError(f'未找到交易所映射 {api_code}')
 
     # 商品期货 期权；检查调整
-    if obj in [Exchange.XSGE, Exchange.XDCE, Exchange.XZCE, Exchange.XINE]:
+    if obj in [ExchangeISO.XSGE, ExchangeISO.XDCE, ExchangeISO.XZCE, ExchangeISO.XINE]:
         return _commodity_future_option(sym_dot_exg, obj)
 
     # 最后其他
@@ -110,7 +110,7 @@ def _security_digit(sym_digit: str) -> str:
         raise ValueError("纯数字类型的编码无法识别")
 
 
-def _commodity_future_option(sym: str, obj: Exchange) -> str:
+def _commodity_future_option(sym: str, obj: ExchangeISO) -> str:
     """ 商品期货 商品期权 """
     # 替换分隔符
     order_book_id = sym.replace("-", "").split(".")[0]  # 前半部分
@@ -119,7 +119,7 @@ def _commodity_future_option(sym: str, obj: Exchange) -> str:
     except IndexError:
         raise ValueError(f"无法识别品种 {order_book_id}")
     if len(res[0]) > 2:
-        raise ValueError(f"品种字母长度不符 {order_book_id}")
+        raise ValueError(f"品种字母长度超过两位 {order_book_id}")
     # 期货相关的指数
     if res[1] in ['00', '88', '888', '8888', '99', '9999', '889']:  # 可以继续完善
         return ''.join(res) + '.' + obj.value

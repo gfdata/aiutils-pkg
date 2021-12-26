@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 @time: 2021/11/3 14:12
-@file: code_common.py
+@file: rq_by_common.py
 
 """
 import six
