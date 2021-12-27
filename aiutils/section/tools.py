@@ -11,6 +11,7 @@ THIRD_DT_FORMAT_S = '%Y-%m-%d %H:%M:%S'
 class TRADING_SECTION_RULE:
     """
     不同类型，对应的交易时段边界调整；todo 固定写法，可按需调整
+    fixme 改为交易所做key，和code编码规则相统一
     """
     params = namedtuple('params', ['acution',  # 连续竞价基础上左移集合竞价timedelta, 用于gen_trading_period
                                    'left_s', 'right_s'])  # 用于dt_in_trading_period
