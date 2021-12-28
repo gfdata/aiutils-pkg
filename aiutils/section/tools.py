@@ -5,39 +5,55 @@
 import datetime
 from collections import namedtuple
 
+from aiutils.code.unique_exchange import ExchangeISO, ExchangeMap
+
 THIRD_DT_FORMAT_S = '%Y-%m-%d %H:%M:%S'
 
+SectionBoundaryParams = namedtuple('params', ['acution',  # 连续竞价基础上左移集合竞价timedelta, 用于str_to_xx_range
+                                              'left_s', 'right_s'])  # 用于dt_in_xx_range的边界
 
-class TRADING_SECTION_RULE:
+
+class SectionBoundary:
     """
-    不同类型，对应的交易时段边界调整；todo 固定写法，可按需调整
-    fixme 改为交易所做key，和code编码规则相统一
+    不同交易所，交易时段的时间边界调整默认参数
+    todo mark~有新交易所时，继续添加
     """
-    params = namedtuple('params', ['acution',  # 连续竞价基础上左移集合竞价timedelta, 用于gen_trading_period
-                                   'left_s', 'right_s'])  # 用于dt_in_trading_period
+    params = SectionBoundaryParams
+    # 照顾到最大的时间偏差情况
+    common = params(acution=datetime.timedelta(minutes=15), left_s=0, right_s=30)
     dic = {
-        # 照顾到最大的时间偏差情况
-        'common': params(acution=datetime.timedelta(minutes=15), left_s=0, right_s=30),
-
+        # 证券交易所
         # 集合竞价15min，有数据变化 反映挂撤情况，09:25推第一个五档价格，09:30推第一个连续竞价tick；尾盘15:00:03左右的数据仍有意义
-        #  证券接口xtp的末端晚的时间不确定，所以right_s设为30
-        'stock': params(acution=datetime.timedelta(minutes=15), left_s=0, right_s=30),
-        'fund': params(acution=datetime.timedelta(minutes=15), left_s=0, right_s=30),  # 同stock
-        'index': None,  # 暂不清楚，用common
+        # 证券接口xtp的末端晚的时间不确定，所以right_s设为30
+        # 证券交易所的金融期权，推送时间也是类似股票
+        ExchangeISO.XSHG: params(acution=datetime.timedelta(minutes=15), left_s=0, right_s=30),
+        ExchangeISO.XSHE: params(acution=datetime.timedelta(minutes=15), left_s=0, right_s=30),
 
+        # 期货交易所
         # 集合竞价5min，ctp在开盘前1min才推数据；尾盘如15:00:00.5这类与14:59最后的数据没差别，所以right_s设为0
-        'future': params(acution=datetime.timedelta(minutes=5), left_s=0, right_s=0),
-        # 注意证券交易所的option集合竞价时间同stock
-        'option': params(acution=datetime.timedelta(minutes=15), left_s=0, right_s=30),
+        ExchangeISO.CCFX: params(acution=datetime.timedelta(minutes=5), left_s=0, right_s=0),
+        ExchangeISO.XSGE: params(acution=datetime.timedelta(minutes=5), left_s=0, right_s=0),
+        ExchangeISO.XDCE: params(acution=datetime.timedelta(minutes=5), left_s=0, right_s=0),
+        ExchangeISO.XZCE: params(acution=datetime.timedelta(minutes=5), left_s=0, right_s=0),
+        ExchangeISO.XINE: params(acution=datetime.timedelta(minutes=5), left_s=0, right_s=0),
 
-        'repo': None,
-        'spot': None,  # 暂不清楚spot，common代替
-        'convertible': params(acution=datetime.timedelta(minutes=15), left_s=0, right_s=30),  # 同stock
+        # 现货交易所
+        ExchangeISO.SGEX: None,  # 暂不清楚spot，设为None，返回common代替
+        ExchangeISO.CSSX: None,
+
     }
 
     @classmethod
-    def get(cls, save_type: str):
-        if cls.dic.get(save_type.lower(), None):
-            return cls.dic.get(save_type.lower())
+    def get(cls, exg_str: str) -> SectionBoundaryParams:
+        if isinstance(exg_str, str):
+            obj = ExchangeMap.data.get(exg_str.upper())
         else:
-            return cls.dic.get('common')
+            assert isinstance(exg_str, ExchangeISO), f'参数要求为Enum中的对象'
+            obj = exg_str
+
+        # 返回结果
+        temp = cls.dic.get(obj, None)
+        if temp:
+            return temp
+        else:
+            return cls.common

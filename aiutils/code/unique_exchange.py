@@ -11,7 +11,8 @@ from aiutils.singleton import SingletonType
 class ExchangeISO(Enum):
     """ 采用ISO market identifier(MIC) 编码
     https://www.iso20022.org/market-identifier-codes
-    未纳入的，则返回各平台原始方式
+    未纳入的，则返回各平台原始方式；
+    todo mark~新交易所纳入时，继续添加
     """
     # ISO COUNTRY=CN
     CFBC = 'CFBC'  # CHINA FOREIGN EXCHANGE TRADE SYSTEM - SHANGHAI - HONG KONG BOND CONNECT
@@ -29,6 +30,12 @@ class ExchangeISO(Enum):
 
 
 class _ExchangeMap(metaclass=SingletonType):
+    """
+    通过交易所缩写字符串，来找到ExchangeISO对象
+    * 在 code_by_common 函数中的参数exchange_map可以使用；也可以传入自定义的
+    * 私有类不应直接调用，而是使用下面已经实例化的对象 ExchangeMap
+
+    """
     # {member.value: member for name, member in Exchange.__members__.items()}
     _data: dict = {x.value: x for x in ExchangeISO}
 
@@ -44,11 +51,7 @@ class _ExchangeMap(metaclass=SingletonType):
         return self._data
 
 
-# -------------------------------------------------------
-""" 通过交易所缩写，来找到Exchange
-* 在code_by_common函数中使用；可以用通用的，也自定义传入
-
-"""
+# ---------------------------------------------------------------------------------
 ExchangeMap = _ExchangeMap()
 ExchangeMap.update({
     "SH": ExchangeISO.XSHG,
@@ -74,7 +77,9 @@ _ud_exchange_commodity = {
     'S': 'XDCE',  # 大豆（历史上弃用的编码）
 }
 
-_ud_exchange_commodity.update({  # 国内商品期货期权，根据underlying对应交易所；硬编码方式，有新合约上市时要此处加上
+_ud_exchange_commodity.update({
+    # 国内商品期货期权，根据underlying对应交易所；
+    # todo mark~有新合约上市时，继续添加
     'A': 'XDCE',
     'AG': 'XSGE',
     'AL': 'XSGE',

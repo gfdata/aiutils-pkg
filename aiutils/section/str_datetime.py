@@ -6,12 +6,12 @@ import datetime
 from typing import List
 from collections import namedtuple
 
-from .tools import TRADING_SECTION_RULE, THIRD_DT_FORMAT_S
+from .tools import SectionBoundary, THIRD_DT_FORMAT_S
 
 DatetimeRange = namedtuple('DatetimeRange', ['start', 'end'])
 
 
-def str_to_datetime_range(date_time_str, save_type, frequency, open_auction=True) -> List[DatetimeRange]:
+def str_to_datetime_range(date_time_str, exg_str, frequency, open_auction=True) -> List[DatetimeRange]:
     """
     解析交易时间字符串`date_time_str` 为List["DatetimeRange"]
     * 规则如下：字符串为 `分钟数据时间戳的右边界`；逗号隔开小节时间；按小节顺序排列；
@@ -24,7 +24,7 @@ def str_to_datetime_range(date_time_str, save_type, frequency, open_auction=True
     * frequency=='tick'且open_auction is True时处理方式：简单处理为开盘时间前推15min（暂不区分各交易所的集合竞价时间）
 
     :param date_time_str:
-    :param save_type: 合约存储类型
+    :param exg_str: 合约的交易所简称
     :param frequency: assert in ['1m','tick']
     :param open_auction: 是否加入集合竞价时段
     :return:
@@ -42,7 +42,7 @@ def str_to_datetime_range(date_time_str, save_type, frequency, open_auction=True
             return res
         # 需要加开盘时段的情况
         res_adj = []
-        first_start = res[0].start - TRADING_SECTION_RULE.get(save_type).acution
+        first_start = res[0].start - SectionBoundary.get(exg_str).acution
         first_end = res[0].end
         res_adj.append(DatetimeRange(first_start, first_end))
         res_adj.extend(res[1:])

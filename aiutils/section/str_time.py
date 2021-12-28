@@ -6,12 +6,12 @@ import datetime
 from collections import namedtuple
 from typing import List
 
-from aiutils.section.tools import TRADING_SECTION_RULE
+from aiutils.section.tools import SectionBoundary
 
 TimeRange = namedtuple('TimeRange', ['start', 'end'])
 
 
-def str_to_time_range(time_str: str, save_type, frequency="1m", open_auction=True) -> List[TimeRange]:
+def str_to_time_range(time_str: str, exg_str, frequency="1m", open_auction=True) -> List[TimeRange]:
     """
     解析交易时间字符串`time_str` 为List["TimeRange"]，注意几点：
     * all_instruments表中'trading_hours'的存储字符串规则：`分钟数据时间戳的右边界`、逗号隔开小节时间、开盘时间点在最前。
@@ -26,7 +26,7 @@ def str_to_time_range(time_str: str, save_type, frequency="1m", open_auction=Tru
     * 简单处理为开盘时间前推15min（暂不区分各交易所的集合竞价时间）
 
     :param time_str:
-    :param save_type: 合约存储类型
+    :param exg_str: 合约的交易所简称
     :param frequency: assert in ['1m','tick']
     :param open_auction: 是否加入集合竞价时段
     :return:
@@ -48,7 +48,7 @@ def str_to_time_range(time_str: str, save_type, frequency="1m", open_auction=Tru
         res_adj = []
         now = datetime.datetime.now()
         temp_1 = datetime.datetime.combine(now.date(), res[0].start)
-        temp_2 = temp_1 - TRADING_SECTION_RULE.get(save_type).acution
+        temp_2 = temp_1 - SectionBoundary.get(exg_str).acution
         assert temp_1.date() == temp_2.date()  # 不能隔日
         res_adj.append(TimeRange(temp_2.time(), res[0].end))
         res_adj.extend(res[1:])
