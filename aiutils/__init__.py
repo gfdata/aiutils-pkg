@@ -2,22 +2,26 @@
 # @time: 2021/12/24 16:14
 # @Author：lhf
 
+import os
 
-CHANGE_LOG = """
-1.1.2
-section边界规则，改为按所属交易所来获取
 
-1.1.1
-添加section交易时段的字符串化，以及判断函数
-* str_datetime:包含日期部分，适用于历史行情数据过滤
-* str_time:只含时间部分，适用于实时行情快速过滤（一是没有考虑历史上的调整；二是没有考虑节假日前后，夜盘时段有时候没有，此时起不到过滤作用；三是退市合约可能为空）
+def get_version():
+    file = os.path.join(
+        os.path.dirname(__file__),
+        "VERSIONLOG.md"
+    )
+    version = '0.0.0'
+    with open(file, encoding='utf8') as f:
+        while True:
+            aline = f.readline()
+            if aline == '':
+                break
 
-1.1.0
-升级code模块，合约转换的规则；
+            version = aline.strip()
+            if version:
+                break
 
-1.0.0
-迁移大部分功能
+    return version
 
-"""
 
-__version__ = CHANGE_LOG.split()[0]
+__version__ = get_version()

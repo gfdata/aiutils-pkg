@@ -9,6 +9,8 @@ from typing import Tuple
 @lru_cache()
 def unique_code_head(unique_code: str) -> str:
     """根据合约编码分组
+    * symbol纯数字：大于三位取前三；不足三位取全部；
+    * symbol字母开头：使用该组字母；
     :param unique_code: 不一定要是本地规则转换之后，只需要symbol在前即可
     :return:
     """
@@ -24,7 +26,7 @@ def unique_code_head(unique_code: str) -> str:
 
 
 @lru_cache()
-def unique_code_head2(unique_code: str) -> str:
+def unique_code_head_old(unique_code: str) -> str:
     """根据合约编码分组
     * symbol纯数字：大于三位取前三；不足三位取全部；
     * symbol字母开头：使用该组字母；
@@ -49,11 +51,12 @@ def sym_dot_exg_split(sym_dot_exg: str) -> Tuple[list, str]:
     """
     temp = sym_dot_exg.split(".")  # 期货 期权 exchange为空
     if len(temp) == 1:
-        symbol, exchange = temp[0], ''
+        symbol, exchange = temp[0], None
     elif len(temp) == 2:
         symbol, exchange = temp[0], temp[1]
     else:
         raise RuntimeError(f'unique_code编码规则:只能有一个或零个分隔符！ got{sym_dot_exg}')
+
     if not symbol:
         raise RuntimeError(f'unique_code编码规则:分割后的前半部分不能为空！ got{sym_dot_exg}')
 

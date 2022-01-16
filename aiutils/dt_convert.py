@@ -18,7 +18,7 @@ from six import string_types, integer_types
 
 
 # 集成方法-----------------------------------------------------------------------------------------
-def to_datetime(dt):
+def to_datetime(dt) -> datetime.datetime:
     """各种格式转datetime: 不确定对象类型时使用。"""
     if isinstance(dt, datetime.datetime):
         return dt
@@ -35,7 +35,7 @@ def to_datetime(dt):
     raise ValueError("expect a datetime like object, got %r(%r)" % (type(dt), dt))
 
 
-def to_date(dt):
+def to_date(dt) -> datetime.date:
     """各种格式转date: 不确定对象类型时使用。"""
     if isinstance(dt, datetime.datetime):
         return dt.date()
