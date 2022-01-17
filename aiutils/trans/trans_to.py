@@ -17,8 +17,9 @@ class TransAbstract:
 
     def __init__(self, data: Any = None, msg: Union[str, dict] = None, status: int = 0):
         """
-        根据传入的数据，生成用于传输的结构体。
-        * 根据传输类型：实现 to_xxx对象方法
+        根据传入的数据，生成用于传输的结构体
+        根据传输类型，实现 to_xxx对象方法；transParser中做对应的解析，还原出对象；
+
         :param data: 任意类型；根据to_xxx函数 做相应转换
         :param msg: 字符串、字典类型；不传入时默认值None
         :param status: 整数类型>=0；每个TransAbstract对应自己的默认值，且相互不能冲突
@@ -33,13 +34,24 @@ class TransAbstract:
             self.msg = msg
 
     def to_dict(self) -> dict:
-        """ 需要根据不同python对象来实现 """
+        """
+        生成可以做json.dumps的字典结构；第三方库中的对象，需要具体实现
+        :return:
+        """
         raise NotImplementedError
 
     def to_pickle(self) -> bytes:
+        """
+        数据做成pickle二进制
+        :return:
+        """
         return pickle.dumps({'data': self.data_raw, 'msg': self.msg, 'status': self.status})
 
     def to_pkgz(self) -> bytes:
+        """
+        数据做成pickle再进行gzip压缩
+        :return:
+        """
         pk = pickle.dumps({'data': self.data_raw, 'msg': self.msg, 'status': self.status})
         return gzip.compress(pk, compresslevel=9)
 

@@ -10,8 +10,8 @@ from io import BytesIO
 
 import pandas as pd
 
+from aiutils.json_obj import my_json
 from .trans_define import TransError
-from .json_obj import my_json
 
 
 class TransParser(object):

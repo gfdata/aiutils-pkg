@@ -1,6 +1,8 @@
 1.2.0
 
-添加bind.calendar，通过赋值 BindTradingCalendar，方便调用多种交易日判断函数
+调整trans模块：数据打包传输
+
+添加bind模块：通过赋值 BindTradingCalendar，方便调用多种交易日判断函数
 
 # 1.1.3
 
