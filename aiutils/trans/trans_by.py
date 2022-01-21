@@ -11,7 +11,7 @@ from io import BytesIO
 import pandas as pd
 
 from aiutils.json_obj import my_json
-from .trans_define import TransError
+from .trans_error import TransError
 
 
 class TransParser(object):

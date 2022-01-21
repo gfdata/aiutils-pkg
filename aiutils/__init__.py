@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 # @time: 2021/12/24 16:14
 # @Author：lhf
-
-import os
+# ----------------------
+from pathlib import Path
 
 
 def get_version():
-    file = os.path.join(
-        os.path.dirname(__file__),
-        "VERSIONLOG.md"
-    )
+    """
+    规则：读取同级目录下，{父目录}_version.md文件
+    :return:
+    """
+    _dir = Path(__file__).parent
+    file = _dir.joinpath(f'{_dir.name}_version.md')
     version = '0.0.0'
     with open(file, encoding='utf8') as f:
         while True:

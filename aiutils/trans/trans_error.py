@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 @time: 2021/11/13 14:23
-@file: trans_define.py
+@file: trans_error.py
 
 """
 from enum import Enum
@@ -20,7 +20,7 @@ class TransError(Exception):
     def __init__(self, status: int, msg):
         """
         传输转换的错误类型
-        :param status: 规则：-1x服务端错误；-2xx用户错误
+        :param status: 规则：-1x 服务端错误；-2x 用户错误
         :param msg: str或可以str()转换的对象
         """
         self.status = int(status)

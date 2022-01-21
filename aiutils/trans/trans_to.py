@@ -10,7 +10,7 @@ from typing import Any, Union
 from copy import deepcopy
 import pandas as pd
 
-from .trans_define import TransError
+from .trans_error import TransError
 
 
 class TransAbstract:
@@ -106,7 +106,7 @@ class TransPandas(TransAbstract):
 
     """
 
-    def __init__(self, data: pd.DataFrame = None, msg: dict = None, status: int = 2):
+    def __init__(self, data: Union[pd.Series, pd.DataFrame] = None, msg: dict = None, status: int = 2):
         super(TransPandas, self).__init__(data, msg, status)
 
     def to_dict(self):
