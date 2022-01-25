@@ -26,19 +26,19 @@ class TransError(Exception):
         self.status = int(status)
         if str(status).startswith('-1'):
             if str(status).startswith('-11'):
-                pre = '【server 执行超时】'
+                pre = '【server执行超时】'
             elif str(status).startswith('-12'):
-                pre = '【server 数据缺失】'
+                pre = '【server数据缺失】'
             else:
-                pre = '【server 其它错误】'
+                pre = '【server其它错误】'
 
         elif str(status).startswith('-2'):
             if str(status).startswith('-21'):
-                pre = '【user 权限不足】'
+                pre = '【user权限不足】'
             elif str(status).startswith('-22'):
-                pre = '【user 传参错误】'
+                pre = '【user传参错误】'
             else:
-                pre = '【user 其它错误】'
+                pre = '【user其它错误】'
 
         else:
             raise ValueError(f'status开头应是[-1, -2], got {status}')

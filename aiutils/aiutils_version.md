@@ -1,4 +1,11 @@
-1.2.0
+1.2.1
+
+增加futureClassify【期货分类数据】
+
+* 新品种上市时，需要手动维护`future_classify.xlsx`(更新频率较低)
+* code模块，内部变量 _ud_exchange_commodity 依赖此表进行更新维护
+
+# 1.2.0
 
 调整trans模块：数据打包传输
 

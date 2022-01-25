@@ -3,8 +3,10 @@
 # @Author：lhf
 
 import warnings
+from copy import deepcopy
 from enum import Enum
 
+from aiutils import futureClassify
 from aiutils.singleton import SingletonType
 
 
@@ -73,93 +75,13 @@ ExchangeMap.update({
 })
 
 # 通过品种字母，来找到Exchange------------------------------------------------------------
-_ud_exchange_commodity = {
-    'S': 'XDCE',  # 大豆（历史上弃用的编码）
-}
+# 国内商品期货期权，underlying对应交易所
+_ud_exchange_commodity = deepcopy(futureClassify.all_data()['exchange_iso'].to_dict())
 
-_ud_exchange_commodity.update({
-    # 国内商品期货期权，根据underlying对应交易所；
-    # todo mark~有新合约上市时，继续添加
-    'A': 'XDCE',
-    'AG': 'XSGE',
-    'AL': 'XSGE',
-    'AP': 'XZCE',
-    'AU': 'XSGE',
-    'B': 'XDCE',
-    'BB': 'XDCE',
-    'BC': 'XINE',
-    'BU': 'XSGE',
-    'C': 'XDCE',
-    'CF': 'XZCE',
-    'CJ': 'XZCE',
-    'CS': 'XDCE',
-    'CU': 'XSGE',
-    'CY': 'XZCE',
-    'EB': 'XDCE',
-    'EG': 'XDCE',
-    'ER': 'XZCE',
-    'FB': 'XDCE',
-    'FG': 'XZCE',
-    'FU': 'XSGE',
-    'GN': 'XZCE',
-    'HC': 'XSGE',
-    'I': 'XDCE',
-    'IC': 'CCFX',
-    'IF': 'CCFX',
-    'IH': 'CCFX',
-    'J': 'XDCE',
-    'JD': 'XDCE',
-    'JM': 'XDCE',
-    'JR': 'XZCE',
-    'L': 'XDCE',
-    'LH': 'XDCE',
-    'LR': 'XZCE',
-    'LU': 'XINE',
-    'M': 'XDCE',
-    'MA': 'XZCE',
-    'ME': 'XZCE',
-    'NI': 'XSGE',
-    'NR': 'XINE',
-    'OI': 'XZCE',
-    'P': 'XDCE',
-    'PB': 'XSGE',
-    'PF': 'XZCE',
-    'PG': 'XDCE',
-    'PK': 'XZCE',
-    'PM': 'XZCE',
-    'PP': 'XDCE',
-    'RB': 'XSGE',
-    'RI': 'XZCE',
-    'RM': 'XZCE',
-    'RO': 'XZCE',
-    'RR': 'XDCE',
-    'RS': 'XZCE',
-    'RU': 'XSGE',
-    'SA': 'XZCE',
-    'SC': 'XINE',
-    'SF': 'XZCE',
-    'SM': 'XZCE',
-    'SN': 'XSGE',
-    'SP': 'XSGE',
-    'SR': 'XZCE',
-    'SS': 'XSGE',
-    'T': 'CCFX',
-    'TA': 'XZCE',
-    'TC': 'XZCE',
-    'TF': 'CCFX',
-    'TS': 'CCFX',
-    'UR': 'XZCE',
-    'V': 'XDCE',
-    'WH': 'XZCE',
-    'WR': 'XSGE',
-    'WS': 'XZCE',
-    'WT': 'XZCE',
-    'Y': 'XDCE',
-    'ZC': 'XZCE',
-    'ZN': 'XSGE',
-})
-
+# 特殊的情况
 UD_EXCHANGE = {
+    'S': 'XDCE',  # 大豆（历史上弃用的编码）
     'IO': 'XSHE',  # 沪深300etf期权
 }
+
 UD_EXCHANGE.update({k: v for k, v in _ud_exchange_commodity.items()})
