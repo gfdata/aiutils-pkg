@@ -1,4 +1,14 @@
-1.2.1
+1.2.2
+
+futureClassify 模块
+
+* 修复pandas读取xlsx的依赖包
+
+code 模块
+
+* 依赖futureClassify，做品种字母与交易所的映射
+
+# 1.2.1
 
 增加futureClassify【期货分类数据】
 

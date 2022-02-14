@@ -24,7 +24,7 @@ def all_underlying():
     return OBJ.all_underlying()
 
 
-def get(by='classify_0'):
+def get(by='classify_a'):
     """
     获取品种的分类规则，详见 future_classify.xlsx表格列名
     """

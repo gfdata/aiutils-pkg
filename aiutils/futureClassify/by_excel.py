@@ -10,12 +10,23 @@ from functools import lru_cache
 from logbook import Logger
 import pandas as pd
 
+from aiutils.code.unique_const import ExchangeISO
 from aiutils.singleton import SingletonType
 
 
 @lru_cache()
 def _pd_read_excel(file, file_t):
-    df = pd.read_excel(file, index_col=0)  # 已经设置了index_col为索引列
+    # xlrd 1.2.0以下才支持xlsx，2.0不支持；pandas 1.3.0 可用openpyxl引擎
+    try:
+        import xlrd
+        df = pd.read_excel(file, index_col=0, skiprows=1)  # 已经设置了index_col为索引列
+    except Exception as e:
+        df = pd.read_excel(file, index_col=0, skiprows=1, engine="openpyxl")
+
+    df = df.dropna(axis=1, how='all').dropna(axis=0, how='all')
+    # 检查
+    assert all([x.isupper() for x in df.index]), '品种名称要求：全为大写字母'
+    assert all([x in ExchangeISO.__members__.keys() for x in df['exchange_iso']]), '品种交易所要求：全部在ExchangeISO中'
     df['start_date'] = pd.to_datetime(df['start_date'])
     df['end_date'] = pd.to_datetime(df['end_date'])
     return df.sort_index()
@@ -41,18 +52,18 @@ class UnderlyingExcel(metaclass=SingletonType):
         else:
             self.file = file
 
-    def all_data(self) -> pd.dataFame:
+    def all_data(self) -> pd.DataFrame:
         return _pd_read_excel(self.file, os.path.getmtime(self.file))
 
     def all_underlying(self) -> set:
         return set(self.all_data().index)
 
-    def future_classify(self, by='classify_0') -> pd.Series:
+    def future_classify(self, by='classify_a') -> pd.Series:
         # type: (Optional[str]) -> Union[None,pd.Series]
         """获取期货品种分类
         """
         if not by.startswith('classify_'):
-            raise ValueError(f'参数by(分类标准) 格式错误')
+            raise ValueError(f'分类标准的参数by：要求全名，classify_开头 got {by}')
         df = self.all_data()
         if by not in df.columns:
             self.logger.error(f'{sys._getframe().f_code.co_name}没有该列 {by}')
