@@ -132,7 +132,7 @@ def df_insert_existed(df: pd.DataFrame, dt_columns: list, dt_format: str,
         tb_add = list(set(df.columns).difference(raw))
         if tb_add:
             dtype = df_types_sql(df[tb_add])
-            logger.debug(f'已存在{table_name} 增加新列{dtype}')
+            logger.debug(f'已存在 {table_name} 增加新列{dtype}')
             for k, v in dtype.items():
                 table_add_col(engine, table_name, k, str(v))
 
@@ -168,9 +168,9 @@ def df_insert_existed(df: pd.DataFrame, dt_columns: list, dt_format: str,
             rslt = session.execute(sql_str, params=df_dic_list)
             session.commit()
             insert_count += rslt.rowcount
-            logger.debug(f'已存在{table_name} 操作{rslt.rowcount} 数据{each_df.shape}')
+            logger.debug(f'已存在 {table_name} 操作{rslt.rowcount} 数据{each_df.shape}')
 
-    logger.info(f'任务表格{table_name} 任务操作{insert_count} 任务数据{df.shape}')
+    logger.info(f'任务表格 {table_name} 任务操作{insert_count} 任务数据{df.shape}')
     return insert_count
 
 

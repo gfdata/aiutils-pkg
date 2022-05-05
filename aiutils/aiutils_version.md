@@ -1,4 +1,14 @@
-1.2.2
+1.3.0
+
+openpyxl_tools编写excel
+
+rqutils 模块
+
+* data proxy 非回测环境直接使用
+* run_func 结果的存储
+* 回测环境中，交易下单封装
+
+# 1.2.2
 
 futureClassify 模块
 

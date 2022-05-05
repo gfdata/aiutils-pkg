@@ -25,7 +25,7 @@ def unique_by_common(order_book_ids) -> str or List:
     :returns: str 或 str list, 米筐格式的合约
 
     """
-    warnings.warn('本方法还有漏洞不能完全识别，请使用 aiutils.code.code_by_common 函数', DeprecationWarning)
+    # warnings.warn('本方法还有漏洞不能完全识别，请使用 aiutils.code.code_by_common 函数', DeprecationWarning)
 
     if isinstance(order_book_ids, six.string_types):
         return _id_convert_one(order_book_ids)
