@@ -11,7 +11,7 @@ import sys
 from typing import List, Tuple
 
 import pandas as pd
-from sqlalchemy import Table, MetaData, NVARCHAR, Integer, Float, DateTime
+from sqlalchemy import Table, MetaData, NVARCHAR, Integer, Float, DateTime, text
 from sqlalchemy.exc import IntegrityError
 from logbook import Logger
 
@@ -97,10 +97,10 @@ def df_insert(df: pd.DataFrame, dt_columns: list, dt_format: str,
             #     ADD PRIMARY KEY (`ths_code`, `time`)""".format(table_name=table_name)
             primary_keys_str = "`" + "`, `".join(primary_keys) + "`"
             add_primary_key_str = f",\nADD PRIMARY KEY ({primary_keys_str})"
-            chg_pk_str = f"ALTER TABLE `{table_name}` \n" + "\n".join(col_name_sql_str_list) + add_primary_key_str
+            chg_pk_str = text(f"ALTER TABLE `{table_name}` \n" + "\n".join(col_name_sql_str_list) + add_primary_key_str)
             logger.info('创建表格 %s 及主键 %s 插入数据%s ' % (table_name, primary_keys, temp.shape))
             try:
-                session.execute(chg_pk_str)
+                session.execute(chg_pk_str)  # FIXME 仍会出错；table_name含有(xx):时
             except IntegrityError as e:
                 # except Exception as e: # 其他异常 调用table_drop_duplicate也解决不了，所以指定捕捉 IntegrityError
                 logger.exception(
@@ -158,15 +158,45 @@ def df_insert_existed(df: pd.DataFrame, dt_columns: list, dt_format: str,
             else:
                 generated_directive = ["`{0}`=VALUES(`{0}`)".format(col_name) for col_name in col_name_list]
 
-            sql_str = "insert into `{table_name}` ({col_names}) VALUES ({params}) ON DUPLICATE KEY UPDATE {update}".format(
-                table_name=table_name,
-                col_names="`" + "`,`".join(col_name_list) + "`",
-                params=','.join([':' + col_name for col_name in col_name_list]),
-                update=','.join(generated_directive),
-            )
+            c1 = any([":" in x for x in col_name_list])  # else常规做法中，列名中有: 会和传参冒号混淆报错
+            if c1:
+                logger.debug(f'{table_name} 插入数据特殊情况：列名含有[:]')
 
-            rslt = session.execute(sql_str, params=df_dic_list)
-            session.commit()
+                # # 方式1 ?方式，会报错 TypeError: '<' not supported between instances of 'float' and 'str'
+                # sql_str = "insert into `{table_name}` ({col_names}) VALUES ({params}) ON DUPLICATE KEY UPDATE {update}".format(
+                #     table_name=table_name,
+                #     col_names="`" + "`,`".join(col_name_list) + "`",
+                #     params=",".join(['?' for x in col_name_list]),
+                #     update=','.join(generated_directive),
+                # )
+                # rslt = session.execute(sql_str, [tuple(d.values()) for d in df_dic_list])
+                # session.commit()
+
+                # 方式2 :纯数字
+                col_name_list_num = dict(zip(col_name_list, range(1, len(col_name_list) + 1)))
+                df_dic_list2 = []
+                for d in df_dic_list:
+                    # 注意key转为str(数字)
+                    df_dic_list2.append({str(col_name_list_num[k]): v for k, v in d.items()})
+                sql_str = "insert into `{table_name}` ({col_names}) VALUES ({params}) ON DUPLICATE KEY UPDATE {update}".format(
+                    table_name=table_name,
+                    col_names="`" + "`,`".join(col_name_list_num.keys()) + "`",
+                    params=','.join([f':{x}' for x in col_name_list_num.values()]),
+                    update=','.join(generated_directive),
+                )
+                rslt = session.execute(sql_str, params=df_dic_list2)
+                session.commit()
+            else:
+                sql_str = "insert into `{table_name}` ({col_names}) VALUES ({params}) ON DUPLICATE KEY UPDATE {update}".format(
+                    table_name=table_name,
+                    col_names="`" + "`,`".join(col_name_list) + "`",
+                    params=','.join([':' + col_name for col_name in col_name_list]),
+                    update=','.join(generated_directive),
+                )
+                rslt = session.execute(sql_str, params=df_dic_list)
+                session.commit()
+
+            # 保存结果
             insert_count += rslt.rowcount
             logger.debug(f'已存在 {table_name} 操作{rslt.rowcount} 数据{each_df.shape}')
 

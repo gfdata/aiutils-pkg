@@ -35,13 +35,22 @@ class _ExchangeMap(metaclass=SingletonType):
 
 # ---------------------------------------------------------------------------------
 ExchangeMap = _ExchangeMap()
-ExchangeMap.update({
+# wind 写法
+EXCHANGE_WIND = {
     "SH": ExchangeISO.XSHG,
-    'SZ': ExchangeISO.XSHE,
-})
+    "SZ": ExchangeISO.XSHE,
+
+    'CFE': ExchangeISO.CCFX,
+    'SHF': ExchangeISO.XSGE,
+    'DCE': ExchangeISO.XDCE,
+    'CZC': ExchangeISO.XZCE,
+    'INE': ExchangeISO.XINE,
+    'SGE': ExchangeISO.SGEX,
+}
+ExchangeMap.update({k: v for k, v in EXCHANGE_WIND.items()})
 
 # vnpy 写法
-ExchangeMap.update({
+EXCHANGE_VNPY = {
     'CFFEX': ExchangeISO.CCFX,
     'SHFE': ExchangeISO.XSGE,
     'DCE': ExchangeISO.XDCE,
@@ -52,7 +61,8 @@ ExchangeMap.update({
     'SGE': ExchangeISO.SGEX,
     'WXE': ExchangeISO.CSSX,
     'CFETS': ExchangeISO.CFBC,
-})
+}
+ExchangeMap.update({k: v for k, v in EXCHANGE_VNPY.items()})
 
 # 通过品种字母，来找到Exchange------------------------------------------------------------
 # 国内商品期货期权，underlying对应交易所

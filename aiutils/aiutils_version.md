@@ -1,4 +1,14 @@
-1.3.0
+1.3.1
+
+* aiutils.sql.df_insert_existed
+
+修复特殊情况下的报错（列名含有:与sqlalchemy传参占位符冲突）
+
+* aiutils.code.unique_exchange.ExchangeMap
+
+增加通用接口的交易所缩写映射（如wind vnpy）
+
+# 1.3.0
 
 openpyxl_tools编写excel
 
