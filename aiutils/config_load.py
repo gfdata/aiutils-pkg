@@ -5,6 +5,7 @@
 
 加载配置项
 """
+import os
 import codecs
 import json
 import yaml
@@ -66,8 +67,8 @@ class ConfigLoading:
         except Exception as e:
             AI_UTILS_LOGGER.error(f'项目[{self.name}]加载json配置失败[{file}]', e)
             raise e
-        s = f'项目[{self.name}]加载json配置成功[{file}]'
-        print(s)
+        s = f'项目[{self.name}]加载json配置[{file}]'
+        print("\033[1;32;40m" + s + "\033[0m" + f"{os.linesep}")  # 调整终端颜色并换行
         AI_UTILS_LOGGER.critical(s)
         dict_deep_update(d, self.final)
         return self.final

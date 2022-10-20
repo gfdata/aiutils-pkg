@@ -10,7 +10,6 @@ from functools import lru_cache
 from logbook import Logger
 import pandas as pd
 
-from aiutils.code.unique_const import ExchangeISO
 from aiutils.singleton import SingletonType
 
 
@@ -26,6 +25,7 @@ def _pd_read_excel(file, file_t):
     df = df.dropna(axis=1, how='all').dropna(axis=0, how='all')
     # 检查
     assert all([x.isupper() for x in df.index]), '品种名称要求：全为大写字母'
+    from aiutils.code.unique_const import ExchangeISO
     assert all([x in ExchangeISO.__members__.keys() for x in df['exchange_iso']]), '品种交易所要求：全部在ExchangeISO中'
     df['start_date'] = pd.to_datetime(df['start_date'])
     df['end_date'] = pd.to_datetime(df['end_date'])

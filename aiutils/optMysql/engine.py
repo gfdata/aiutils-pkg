@@ -4,6 +4,8 @@
 @file: engine.py
 
 """
+import os
+
 from logbook import Logger
 from sqlalchemy import create_engine
 from aiutils.singleton import SingletonTypeThreadSafe, SingletonType
@@ -51,4 +53,4 @@ class StoreMysqlEngine(metaclass=SingletonType):
             self._engine_dict[db].connect()
 
         except Exception as e:
-            raise RuntimeError(f"{self.__class__.__name__} 创建engine失败：{str(e)} 连接地址：{url}")
+            raise RuntimeError(f"{self.__class__.__name__}创建引擎失败：名称{db} |地址{url} |{os.linesep}{type(e)}:{e}")

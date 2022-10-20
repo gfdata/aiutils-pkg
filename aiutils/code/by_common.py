@@ -51,7 +51,7 @@ def _code_by_common(api_code: str, api_exchange: str = '', exchange_map: dict = 
                 return api_code + '.' + obj.value
             else:  # 混合，默认是商品期货 商品期权； # 特殊的IOxxxx(深交所)
                 try:
-                    obj = exchange_map[UD_EXCHANGE[temp[0]]]
+                    obj = exchange_map[UD_EXCHANGE[temp[0].upper()]]
                 except Exception as e:
                     raise ValueError(f'未找到交易所映射 {api_code}')
                 else:
@@ -120,8 +120,9 @@ def _commodity_future_option(sym: str, obj: ExchangeISO) -> str:
         raise ValueError(f"无法识别品种 {order_book_id}")
     if len(res[0]) > 2:
         raise ValueError(f"品种字母长度超过两位 {order_book_id}")
-    # 期货相关的指数
-    if res[1] in ['00', '88', '888', '8888', '99', '9999', '889']:  # 可以继续完善
+    # 期货相关的指数  # todo 可以继续完善
+    if res[1] in ['00', '88', '888', '8888', '99', '9999', '889',
+                  '000']:
         return ''.join(res) + '.' + obj.value
     # 年份补全
     if len(res[1]) == 3:

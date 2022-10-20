@@ -10,11 +10,18 @@ import json
 from copy import deepcopy
 from functools import lru_cache
 
+import colorama
 import pandas as pd
 from openpyxl import load_workbook, Workbook
 
 from aiutils.json_obj import jsonable_encoder
 from aiutils.openpyxl_tools import openpyxl_df_clear_write
+import warnings
+
+_ = f'FutureWarning：{__name__} 新的项目不要使用此模块，改用saveResult区分不同存储方式'
+warnings.warn(_, FutureWarning)
+colorama.init(autoreset=True)
+print(colorama.Fore.YELLOW + _)
 
 
 def save_config_json(context, output_path):
@@ -75,7 +82,8 @@ def _read_excel(file, file_t, sheet_name):
 
 
 def save_rq_excel(rq: dict, output_path):
-    """ 存储rqalpha的运行结果；run_func返回的数据结构；目录 output_path，文件名 sys_analyser.xlsx
+    """
+    存储rqalpha的运行结果；run_func返回的数据结构；目录 output_path，文件名 sys_analyser.xlsx
     * 参考 rqalpha.mod.rqalpha_mod_sys_analyser.report.generate_report
     * run_func返回的rq['sys_analyser']才是对映的上面mod的result_dict
     """
@@ -104,7 +112,12 @@ def save_rq_excel(rq: dict, output_path):
                 df = df.reset_index()
                 df["date"] = df["date"].apply(lambda x: x.strftime("%Y-%m-%d"))
                 df = df.set_index("date")
+            # index name 和cols重复时
+            if df.index.name in df.columns:
+                del df[df.index.name]
+
             openpyxl_df_clear_write(wb, sheet_name=name, df=df.reset_index())
+
         # 最后保存
         wb.save(file)
         wb.close()
