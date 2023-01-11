@@ -1,6 +1,6 @@
 1.4.0
 
-* 增加交易所常量 GFEX；future_classify增加SI
+* 增加交易所常量 GFEX； future_classify增加SI
 
 # 1.3.2
 
