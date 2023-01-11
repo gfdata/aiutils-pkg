@@ -1,18 +1,30 @@
-1.3.1
+1.4.0
 
-* aiutils.sql.df_insert_existed
+* 增加交易所常量 GFEX；future_classify增加SI
 
-修复特殊情况下的报错（列名含有:与sqlalchemy传参占位符冲突）
+# 1.3.2
 
-* aiutils.code.unique_exchange.ExchangeMap
+## aiutils.dt_convert
 
-增加通用接口的交易所缩写映射（如wind vnpy）
+* 增加 split_dates系列函数
+
+# 1.3.1
+
+## aiutils.sql
+
+* df_insert_existed 修复特殊情况下的报错（列名含有:与sqlalchemy传参占位符冲突）
+
+## aiutils.code
+
+* unique_exchange.ExchangeMap 增加通用接口的交易所缩写映射（如wind vnpy）
 
 # 1.3.0
 
-openpyxl_tools编写excel
+## 新增 aiutils.openpyxl_tools
 
-rqutils 模块
+常用的excel写入
+
+## 新增 aiutils.rqutils
 
 * data proxy 非回测环境直接使用
 * run_func 结果的存储
@@ -20,26 +32,32 @@ rqutils 模块
 
 # 1.2.2
 
-futureClassify 模块
+## aiutils.futureClassify
 
 * 修复pandas读取xlsx的依赖包
 
-code 模块
+## aiutils.code
 
 * 依赖futureClassify，做品种字母与交易所的映射
 
 # 1.2.1
 
-增加futureClassify【期货分类数据】
+## 新增 aiutils.futureClassify
+
+期货分类数据
 
 * 新品种上市时，需要手动维护`future_classify.xlsx`(更新频率较低)
 * code模块，内部变量 _ud_exchange_commodity 依赖此表进行更新维护
 
 # 1.2.0
 
-调整trans模块：数据打包传输
+## aiutils.trans
 
-添加bind模块：通过赋值 BindTradingCalendar，方便调用多种交易日判断函数
+数据打包传输
+
+## 新增 aiutils.bind
+
+通过赋值 BindTradingCalendar，方便调用多种交易日判断函数
 
 # 1.1.3
 

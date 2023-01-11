@@ -8,6 +8,7 @@
 * 根据整数位数不同，可以还原所需datetime相关对象
 
 """
+import sys
 from typing import List, Tuple
 import pandas as pd
 
@@ -16,8 +17,10 @@ from dateutil.parser import parse as parse_datetime
 import numpy as np
 from six import string_types, integer_types
 
-
 # 集成方法-----------------------------------------------------------------------------------------
+from aiutils.cache import MemoryCache
+
+
 def to_datetime(dt) -> datetime.datetime:
     """各种格式转datetime: 不确定对象类型时使用。"""
     if isinstance(dt, datetime.datetime):
@@ -64,23 +67,60 @@ def int_to_datetime(dt):
     raise ValueError("a datetime int should be 8, 14 or 17 length int, now is {}".format(dt))
 
 
-def split_dates_range(day_start, day_end, freq) -> List[Tuple[datetime.date, datetime.date]]:
+# 日期范围切分----------------------------------------------------------------------------------------------
+@MemoryCache.cached_function_result_for_a_time(cache_second=3600)
+def split_dates_startmore(start, end, freq) -> pd.DataFrame:
     """
-    日期的始末时间，按频率切分任务块
-    :param day_start: 能被to_date识别的
-    :param day_end: 能被to_date识别的
-    :param freq: pandas支持的resample
-    :return: 嵌套
+    切分任务块，补充`start`为该频率的第一个日期
+    * 当分块任务需要读取缓存时，补充start可规范参数，方便调用缓存
+    * 可能非交易日也有日期记录数据，要用这个函数生成全部日期，而非 split_dates_series
+    """
+    # 参考材料 https://www.jianshu.com/p/2a4522c76dca
+    from pandas.tseries.frequencies import to_offset
+
+    start = pd.to_datetime(start).normalize()
+    end = pd.to_datetime(end).normalize()
+    of = to_offset(freq)
+    start_more = pd.to_datetime(start) - of + pd.offsets.Day()  # 起始时间扩展，到该频率的第一个日期
+    start_more.normalize()
+    assert start_more <= start, f'时间段划分有漏洞 {sys._getframe().f_code.co_name}'
+
+    # 切分时间段
+    td = pd.date_range(start_more, end, freq='D')
+    se = pd.Series(index=pd.to_datetime(td), data=td, name='td')
+    return split_dates_series(se=se, freq=freq, tag_dropna=True)
+
+
+@MemoryCache.cached_function_result_for_a_time(cache_second=3600)
+def split_dates_range(day_start, day_end, freq) -> pd.DataFrame:
+    """
+    按频率切分任务块
     """
     temp = pd.date_range(to_date(day_start), to_date(day_end), freq='D')
     se = pd.Series(data=temp, index=temp)
-    # 采样，并保留起始边界，结束边界
-    df = se.resample(freq).agg(['min', 'max'])
+    df = split_dates_series(se=se, freq=freq, tag_dropna=True)
+    return df
+
+
+def split_dates_series(se: pd.Series, freq, tag_dropna=True) -> pd.DataFrame:
+    """
+    时间索引的series进行切分
+    * 如果是交易日历按week采样时，碰到春节或国庆假期，可能都是nan；tag_dropna 决定是否去掉这个区间
+    """
+    assert isinstance(se.index, pd.DatetimeIndex), f'series参数：要求为时间索引'
+    df = se.resample(freq).agg(['min', 'max']).sort_index(ascending=True)
+    if tag_dropna:
+        df = df.dropna(how='any')
+    return df
+
+
+def split_dates_tolist(df: pd.DataFrame) -> List[Tuple[datetime.date, datetime.date]]:
+    """ 转化结果形式为 嵌套list """
     res = []
     for tu in df.iterrows():
-        res.append((tu[-1]['min'].to_pydatetime().date(),
-                    tu[-1]['max'].to_pydatetime().date()
-                    ))
+        res.append(
+            (tu[-1]['min'].to_pydatetime().date(), tu[-1]['max'].to_pydatetime().date())
+        )
     return res
 
 

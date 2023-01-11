@@ -120,7 +120,7 @@ class MemoryCache(object):
     func_result_dict = OrderedDict()
 
     @classmethod
-    def cached_function_result_for_a_time(cls, cache_mb=1024, cache_second=60):
+    def cached_function_result_for_a_time(cls, cache_mb=2048, cache_second=60):
         """
         :param cache_mb: 整个缓存器的最大内存
         :param cache_second: 最长缓存秒数
@@ -208,11 +208,11 @@ class PickleCache(object):
                 try:
                     result = _read_pickle_cache(cache_file, cache_second)
                 except Exception as e:
-                    msg = f'[{fun.__name__}]未使用缓存[{key}]：[{str(e)}]'
+                    msg = f'[{fun.__name__}]未使用pickle缓存[{key}]：[{str(e)}]'
                     cls.logger.debug(msg)
                     result = cls.exec_func_and_pickle(cache_file, fun, *args, **kwargs)
                 else:
-                    cls.logger.debug(f'[{fun.__name__}]使用缓存[{key}]')
+                    cls.logger.debug(f'[{fun.__name__}]使用pickle缓存[{key}]')
 
                 # 最后返回结果
                 return result

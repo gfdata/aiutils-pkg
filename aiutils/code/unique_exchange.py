@@ -46,6 +46,7 @@ EXCHANGE_WIND = {
     'CZC': ExchangeISO.XZCE,
     'INE': ExchangeISO.XINE,
     'SGE': ExchangeISO.SGEX,
+    'GFE': ExchangeISO.GFEX,
 }
 ExchangeMap.update({k: v for k, v in EXCHANGE_WIND.items()})
 
@@ -56,6 +57,7 @@ EXCHANGE_VNPY = {
     'DCE': ExchangeISO.XDCE,
     'CZCE': ExchangeISO.XZCE,
     'INE': ExchangeISO.XINE,
+    'GFEX': ExchangeISO.GFEX,
     'SSE': ExchangeISO.XSHG,
     'SZSE': ExchangeISO.XSHE,
     'SGE': ExchangeISO.SGEX,
