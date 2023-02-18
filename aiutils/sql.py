@@ -158,8 +158,9 @@ def df_insert_existed(df: pd.DataFrame, dt_columns: list, dt_format: str,
             else:
                 generated_directive = ["`{0}`=VALUES(`{0}`)".format(col_name) for col_name in col_name_list]
 
-            c1 = any([":" in x for x in col_name_list])  # else常规做法中，列名中有: 会和传参冒号混淆报错
-            if c1:
+            c1 = any([":" in x for x in col_name_list])  # 常规做法中，列名有: ->会和传参冒号混淆报错
+            c2 = any(["-" in x for x in col_name_list])  # 常规做法中，列名有- 会导致sql拼接语句出错
+            if c1 or c2:
                 logger.debug(f'{table_name} 插入数据特殊情况：列名含有[:]')
 
                 # # 方式1 ?方式，会报错 TypeError: '<' not supported between instances of 'float' and 'str'
