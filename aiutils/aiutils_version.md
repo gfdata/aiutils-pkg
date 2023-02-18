@@ -1,4 +1,14 @@
-1.4.0
+1.4.1
+
+## aiutils.sql
+
+* df_insert_existed 字段名称有特殊字符时，语句改用位置传参
+
+## aiutils.random_str
+
+* 新增，生成随机字符串的函数
+
+# 1.4.0
 
 * 增加交易所常量 GFEX； future_classify增加SI
 
