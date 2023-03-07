@@ -1,11 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-@time: 2021/11/28 17:13
-@file: sql.py
-
-sql操作的函数
-"""
-
 import hashlib
 import sys
 from typing import List, Tuple
@@ -68,7 +61,7 @@ def df_insert(df: pd.DataFrame, dt_columns: list, dt_format: str,
             if x not in dtype.keys():
                 dtype.update(df_types_sql(df[[x]]))
 
-    # fix-->df.to_sql会自动替换NaT为前值-->先按df.dtypes创建表格创建主键，但不插入数据。再按df_insert_existed执行
+    # fix-->df.to_sql会自动替换NaT为前值 -->先按df.dtypes创建表格 创建主键，但不插入数据。再按df_insert_existed执行
     temp = df[slice(0)]
     temp.to_sql(table_name, engine, if_exists='fail', index=False, dtype=dtype, chunksize=chunksize)
 
@@ -100,7 +93,7 @@ def df_insert(df: pd.DataFrame, dt_columns: list, dt_format: str,
             chg_pk_str = text(f"ALTER TABLE `{table_name}` \n" + "\n".join(col_name_sql_str_list) + add_primary_key_str)
             logger.info('创建表格 %s 及主键 %s 插入数据%s ' % (table_name, primary_keys, temp.shape))
             try:
-                session.execute(chg_pk_str)  # FIXME 仍会出错；table_name含有(xx):时
+                session.execute(chg_pk_str)  # FIXME table_name含有'):{字母}' 会出错 --> 目前只能函数之外先执行建表
             except IntegrityError as e:
                 # except Exception as e: # 其他异常 调用table_drop_duplicate也解决不了，所以指定捕捉 IntegrityError
                 logger.exception(
@@ -114,12 +107,87 @@ def df_insert(df: pd.DataFrame, dt_columns: list, dt_format: str,
     return insert_count
 
 
+def _insert_a(df_dic_list, col_name_list,
+              engine, table_name, ignore_none):
+    """ 列名参数的方式 """
+    # 如果行作为新记录被插入，则受影响的行为1；如果原有记录被更新，则受影响行为2；如果原有记录已存在，但是更新的值和原有值相同，则受影响行为0
+    if ignore_none:
+        generated_directive = ["`{0}`=IFNULL(VALUES(`{0}`), `{0}`)".format(col_name) for col_name in
+                               col_name_list]
+    else:
+        generated_directive = ["`{0}`=VALUES(`{0}`)".format(col_name) for col_name in col_name_list]
+
+    with with_db_session(engine) as session:
+        sql_str = "insert into `{table_name}` ({col_names}) VALUES ({params}) ON DUPLICATE KEY UPDATE {update}".format(
+            table_name=table_name,
+            col_names="`" + "`,`".join([f'{x}' for x in col_name_list]) + "`",
+            params=','.join([f':{x}' for x in col_name_list]),
+            update=','.join(generated_directive),
+        )
+        rslt = session.execute(sql_str, params=df_dic_list)
+        session.commit()
+    return rslt.rowcount
+
+
+def _insert_b(df_dic_list, col_name_list,
+              engine, table_name, ignore_none):
+    """ 位置参数的方式 """
+    if ignore_none:
+        generated_directive = ["`{0}`=IFNULL(VALUES(`{0}`), `{0}`)".format(col_name) for col_name in
+                               col_name_list]
+    else:
+        generated_directive = ["`{0}`=VALUES(`{0}`)".format(col_name) for col_name in col_name_list]
+
+    with with_db_session(engine) as session:
+        col_name_list_num = dict(zip(col_name_list, range(1, len(col_name_list) + 1)))
+        df_dic_list2 = []
+        for d in df_dic_list:
+            # 注意key转为str(数字)
+            df_dic_list2.append({str(col_name_list_num[k]): v for k, v in d.items()})
+        sql_str = "insert into `{table_name}` ({col_names}) VALUES ({params}) ON DUPLICATE KEY UPDATE {update}".format(
+            table_name=table_name,
+            col_names="`" + "`,`".join([f'{x}' for x in col_name_list_num.keys()]) + "`",
+            params=','.join([f':{x}' for x in col_name_list_num.values()]),
+            update=','.join(generated_directive),  # 字段名称含有 ):字母，参数化会出错-->见下方异常处理
+        )
+        rslt = session.execute(sql_str, params=df_dic_list2)
+        session.commit()
+    return rslt.rowcount
+
+
+def _insert_c(df_dic_list, col_name_list,
+              engine, table_name, ignore_none):
+    """ DataFrame拼接 on_duplicate """
+    # rslt = 1
+    # for i in range(len(df_dic_list)):
+    #     try:
+    #         pd.DataFrame(df_dic_list[i], index=[i]).to_sql(
+    #             table_name, engine, index=False, if_exists='append')
+    #     except IntegrityError:
+    #         pass
+    #     else:
+    #         rslt += 1
+    # return rslt
+
+    # 参考 https://9to5answer.com/pandas-to_sql-fails-on-duplicate-primary-key
+    from sqlalchemy.dialects.mysql import insert
+
+    def insert_on_duplicate(table, conn, keys, data_iter):
+        insert_stmt = insert(table.table).values(list(data_iter))
+        on_duplicate_key_stmt = insert_stmt.on_duplicate_key_update(insert_stmt.inserted)
+        conn.execute(on_duplicate_key_stmt)
+
+    # 用整理过的 df_dic_list 而非原始的 df
+    pd.DataFrame(df_dic_list).to_sql(
+        table_name, engine, index=False, if_exists='append', method=insert_on_duplicate)
+    return len(df_dic_list)
+
+
 def df_insert_existed(df: pd.DataFrame, dt_columns: list, dt_format: str,
                       table_name: str, engine, ignore_none=True, chunksize=1024 * 128, add_col=False):
     """
     将 DataFrame 数据批量插入数据库。要求表格已存在
     先split_ilter整个df，再进行df_to_dict略快一点
-    如果行作为新记录被插入，则受影响的行为1；如果原有记录被更新，则受影响行为2；如果原有记录已存在，但是更新的值和原有值相同，则受影响行为0
     """
     logger = Logger(sys._getframe().f_code.co_name)
     has_table = engine.has_table(table_name)
@@ -142,64 +210,16 @@ def df_insert_existed(df: pd.DataFrame, dt_columns: list, dt_format: str,
         #     for x in df_add:
         #         df[x] = None
 
-    with with_db_session(engine) as session:
-        insert_count = 0
-        # for each in split_iter(df.index, chunksize):
-        #     each_df = df.loc[each, :]  # fixmedf.index重复时 切片数据变多
-        for each in split_iter(range(len(df.index)), chunksize):
-            each_df = df.iloc[each, :]
-            df_dic_list, col_name_list = df_to_dict(each_df, dt_columns, dt_format)
-            if not df_dic_list:
-                continue
-
-            if ignore_none:
-                generated_directive = ["`{0}`=IFNULL(VALUES(`{0}`), `{0}`)".format(col_name) for col_name in
-                                       col_name_list]
-            else:
-                generated_directive = ["`{0}`=VALUES(`{0}`)".format(col_name) for col_name in col_name_list]
-
-            c1 = any([":" in x for x in col_name_list])  # 常规做法中，列名有: ->会和传参冒号混淆报错
-            c2 = any(["-" in x for x in col_name_list])  # 常规做法中，列名有- 会导致sql拼接语句出错
-            if c1 or c2:
-                logger.debug(f'{table_name} 插入数据特殊情况：列名含有[:]')
-
-                # # 方式1 ?方式，会报错 TypeError: '<' not supported between instances of 'float' and 'str'
-                # sql_str = "insert into `{table_name}` ({col_names}) VALUES ({params}) ON DUPLICATE KEY UPDATE {update}".format(
-                #     table_name=table_name,
-                #     col_names="`" + "`,`".join(col_name_list) + "`",
-                #     params=",".join(['?' for x in col_name_list]),
-                #     update=','.join(generated_directive),
-                # )
-                # rslt = session.execute(sql_str, [tuple(d.values()) for d in df_dic_list])
-                # session.commit()
-
-                # 方式2 :纯数字
-                col_name_list_num = dict(zip(col_name_list, range(1, len(col_name_list) + 1)))
-                df_dic_list2 = []
-                for d in df_dic_list:
-                    # 注意key转为str(数字)
-                    df_dic_list2.append({str(col_name_list_num[k]): v for k, v in d.items()})
-                sql_str = "insert into `{table_name}` ({col_names}) VALUES ({params}) ON DUPLICATE KEY UPDATE {update}".format(
-                    table_name=table_name,
-                    col_names="`" + "`,`".join(col_name_list_num.keys()) + "`",
-                    params=','.join([f':{x}' for x in col_name_list_num.values()]),
-                    update=','.join(generated_directive),
-                )
-                rslt = session.execute(sql_str, params=df_dic_list2)
-                session.commit()
-            else:
-                sql_str = "insert into `{table_name}` ({col_names}) VALUES ({params}) ON DUPLICATE KEY UPDATE {update}".format(
-                    table_name=table_name,
-                    col_names="`" + "`,`".join(col_name_list) + "`",
-                    params=','.join([':' + col_name for col_name in col_name_list]),
-                    update=','.join(generated_directive),
-                )
-                rslt = session.execute(sql_str, params=df_dic_list)
-                session.commit()
-
-            # 保存结果
-            insert_count += rslt.rowcount
-            logger.debug(f'已存在 {table_name} 操作{rslt.rowcount} 数据{each_df.shape}')
+    # 插入数据
+    insert_count = 0
+    for each in split_iter(range(len(df.index)), chunksize):
+        each_df = df.iloc[each, :]
+        df_dic_list, col_name_list = df_to_dict(each_df, dt_columns, dt_format)
+        if not df_dic_list:
+            continue
+        # sqlalchemy表名字段名的冒号问题 https://www.cnblogs.com/i-love-python/p/11593501.html -->使用pd.to_sql一般能解决
+        res = _insert_c(df_dic_list, col_name_list, engine, table_name, ignore_none)
+        insert_count += res
 
     logger.info(f'任务表格 {table_name} 任务操作{insert_count} 任务数据{df.shape}')
     return insert_count

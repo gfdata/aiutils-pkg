@@ -2,7 +2,10 @@
 
 ## aiutils.sql
 
-* df_insert_existed 字段名称有特殊字符时，语句改用位置传参
+* 表名字段名含有特殊字符'):{字母}' sqlalchemy执行异常的问题解决：
+
+- 一般先建表，例如手动建表或type动态建表
+- 插入数据，利用df.to_sql增加method方法防止duplicate key异常
 
 ## aiutils.random_str
 

@@ -1,13 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-@time: 2021/10/19 17:04
-@file: dt_convert.py
-
-时间解析及转换：
-* 8位(年月日)、14位(保留到秒)、17位(保留到毫秒)，9位(时分秒毫秒)
-* 根据整数位数不同，可以还原所需datetime相关对象
-
-"""
 import sys
 from typing import List, Tuple
 import pandas as pd
@@ -16,11 +7,16 @@ import datetime
 from dateutil.parser import parse as parse_datetime
 import numpy as np
 from six import string_types, integer_types
+from .cache import MemoryCache
+
+"""
+时间解析及转换：
+* 8位(年月日)、14位(保留到秒)、17位(保留到毫秒)，9位(时分秒毫秒)
+* 根据整数位数不同，可以还原所需datetime相关对象
+"""
+
 
 # 集成方法-----------------------------------------------------------------------------------------
-from aiutils.cache import MemoryCache
-
-
 def to_datetime(dt) -> datetime.datetime:
     """各种格式转datetime: 不确定对象类型时使用。"""
     if isinstance(dt, datetime.datetime):
