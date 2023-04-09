@@ -1,5 +1,13 @@
 1.4.1
 
+## aiutils.rqutils.strategy_identify.generate_id_vars
+
+* 修改生成规则
+
+## aiutils.dt_convert.split_dates_more
+
+* 增加参数，是否扩展结束日期
+
 ## aiutils.sql
 
 * 表名字段名含有特殊字符'):{字母}' sqlalchemy执行异常的问题解决：

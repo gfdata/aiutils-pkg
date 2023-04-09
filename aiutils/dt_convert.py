@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
+from functools import lru_cache
 from typing import List, Tuple
 import pandas as pd
 
@@ -7,7 +8,7 @@ import datetime
 from dateutil.parser import parse as parse_datetime
 import numpy as np
 from six import string_types, integer_types
-from .cache import MemoryCache
+from .cache import lru_cache, hashable_lru
 
 """
 时间解析及转换：
@@ -64,30 +65,39 @@ def int_to_datetime(dt):
 
 
 # 日期范围切分----------------------------------------------------------------------------------------------
-@MemoryCache.cached_function_result_for_a_time(cache_second=3600)
-def split_dates_startmore(start, end, freq) -> pd.DataFrame:
+@lru_cache()
+def split_dates_more(start, end, freq, extend_end=True) -> pd.DataFrame:
     """
-    切分任务块，补充`start`为该频率的第一个日期
-    * 当分块任务需要读取缓存时，补充start可规范参数，方便调用缓存
-    * 可能非交易日也有日期记录数据，要用这个函数生成全部日期，而非 split_dates_series
+    切分日期范围，当分块任务需要读取缓存时，扩展日期范围方便生成缓存
+    * 补充`start`为该频率的第一个日期
+    * 此处会生成全部日期，包括自然日（非交易日）的阶段
+    :param start:
+    :param end:
+    :param freq: 切分频率
+    :param extend_end: 是否扩展end为该频率最后一个日期
+    :return: pd.DataFrame
     """
     # 参考材料 https://www.jianshu.com/p/2a4522c76dca
     from pandas.tseries.frequencies import to_offset
-
     start = pd.to_datetime(start).normalize()
     end = pd.to_datetime(end).normalize()
     of = to_offset(freq)
-    start_more = pd.to_datetime(start) - of + pd.offsets.Day()  # 起始时间扩展，到该频率的第一个日期
-    start_more.normalize()
-    assert start_more <= start, f'时间段划分有漏洞 {sys._getframe().f_code.co_name}'
+    start_use = pd.to_datetime(start) - of + pd.offsets.Day()  # 起始时间扩展，到该频率的第一个日期
+    start_use.normalize()
+    assert start_use <= start, f'时间段划分有漏洞 {sys._getframe().f_code.co_name}'
+    if extend_end:
+        end_use = pd.to_datetime(end) + of  # 结束时间扩展，该频率的最后一个日期
+        assert end_use >= end, f'时间段划分有漏洞 {sys._getframe().f_code.co_name}'
+    else:
+        end_use = end
 
     # 切分时间段
-    td = pd.date_range(start_more, end, freq='D')
+    td = pd.date_range(start_use, end_use, freq='D')
     se = pd.Series(index=pd.to_datetime(td), data=td, name='td')
     return split_dates_series(se=se, freq=freq, tag_dropna=True)
 
 
-@MemoryCache.cached_function_result_for_a_time(cache_second=3600)
+@lru_cache()
 def split_dates_range(day_start, day_end, freq) -> pd.DataFrame:
     """
     按频率切分任务块

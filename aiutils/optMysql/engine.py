@@ -39,9 +39,9 @@ class StoreMysqlEngine(metaclass=SingletonType):
 
     def _set_connect(self, db):
         """ 创建并测试能否连接；保存到self._engine_dict """
+        db_dict = AIUTILS_MYSQL_CONFIG.attrs.database.convert_to_dict()
+        url = db_dict.get(db)
         try:
-            db_dict = AIUTILS_MYSQL_CONFIG.attrs.database.convert_to_dict()
-            url = db_dict.get(db)
             self._engine_dict[db] = create_engine(
                 url,
                 pool_size=AIUTILS_MYSQL_CONFIG.attrs.engine_params.pool_size,

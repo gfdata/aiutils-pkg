@@ -2,7 +2,6 @@
 # @time: 2022/7/19 9:09
 # @Author：lhf
 # ----------------------
-import os
 import hashlib
 import pickle
 from pathlib import Path
@@ -52,19 +51,19 @@ def generate_id_name(name: str):
 
 
 def generate_id_script(file_path, relative_path):
-    file_path = Path(os.path.abspath(file_path))
-    relative_path = Path(os.path.abspath(relative_path))
+    file_path = Path(file_path).absolute()
+    relative_path = Path(relative_path).absolute()
     id_script = file_path.with_suffix('').relative_to(relative_path)
     id_script = '-'.join(id_script.parts)
     return id_script
 
 
 def generate_id_vars(context_vars: dict, explicit_keys: list, params_model_class=None):
-    """
+    """ 常用的id_vars生成规则
     :param context_vars: 传给context的变量
     :param explicit_keys: 不在BaseParams中的参数，需要显式体现在id字符串中
-    :param params_model_class:
-    :return:
+    :param params_model_class: BaseModel，规范数据并用到其中的默认值
+    :return: 最终结果形式类似 ()hashlib 或者 key(value)key(value)...key(value)hashlib
     """
     # 显式体现的部分；不在BaseParams中的参数
     if explicit_keys is None or len(explicit_keys) == 0:
@@ -89,10 +88,10 @@ def generate_id_vars(context_vars: dict, explicit_keys: list, params_model_class
             sorted_arg_dict = sorted(p.dict().items())  # 按需要进行定义；参考 aiutils.cache._make_arguments_to_key
             s = hashlib.md5(pickle.dumps(sorted_arg_dict)).hexdigest()
         else:
-            raise RuntimeError(f'params_model_class 不支持 {type(params_model_class)}')
+            raise RuntimeError(f'params_model_class要求为BaseModel 不支持 {type(params_model_class)}')
     # 拼接起来
     if s:
-        id_vars = args1 + "-" + s
+        id_vars = args1 + s
     else:
         id_vars = args1
     return id_vars

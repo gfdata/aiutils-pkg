@@ -157,29 +157,54 @@ def _insert_b(df_dic_list, col_name_list,
 
 def _insert_c(df_dic_list, col_name_list,
               engine, table_name, ignore_none):
+    for chunk in [5000, 1000, 200]:
+        try:
+            temp = _insert_c_chunk(df_dic_list, col_name_list,
+                                   engine, table_name, ignore_none, chunk)
+        except Exception as e:
+            res = None
+        else:
+            e = None
+            res = temp
+            break
+    # 判断结果
+    if isinstance(e, Exception):
+        raise e
+    else:
+        return res
+
+
+def _insert_c_chunk(df_dic_list, col_name_list,
+                    engine, table_name, ignore_none, chunk):
     """ DataFrame拼接 on_duplicate """
-    # rslt = 1
-    # for i in range(len(df_dic_list)):
-    #     try:
-    #         pd.DataFrame(df_dic_list[i], index=[i]).to_sql(
-    #             table_name, engine, index=False, if_exists='append')
-    #     except IntegrityError:
-    #         pass
-    #     else:
-    #         rslt += 1
-    # return rslt
+    # 可能出现连接超时的问题 -->使用conn 参考 https://www.coder.work/article/385432 ; 还需要chunksize，设置任务了小一些才能解决
+    with engine.connect() as conn:
+        # sac = conn.begin()  # 不能开启事务；会导致后面pd.to_sql执行无报错，但实际没有存储进去
+        conn.execute("show databases; ").fetchall()
 
-    # 参考 https://9to5answer.com/pandas-to_sql-fails-on-duplicate-primary-key
-    from sqlalchemy.dialects.mysql import insert
+        # rslt = 1
+        # for i in range(len(df_dic_list)):
+        #     try:
+        #         pd.DataFrame(df_dic_list[i], index=[i]).to_sql(
+        #             table_name, conn, index=False, if_exists='append')
+        #     except IntegrityError:
+        #         pass
+        #     else:
+        #         rslt += 1
+        # return rslt
 
-    def insert_on_duplicate(table, conn, keys, data_iter):
-        insert_stmt = insert(table.table).values(list(data_iter))
-        on_duplicate_key_stmt = insert_stmt.on_duplicate_key_update(insert_stmt.inserted)
-        conn.execute(on_duplicate_key_stmt)
+        from sqlalchemy.dialects.mysql import insert
+        # pd.to_sql加上method参数；参考 https://9to5answer.com/pandas-to_sql-fails-on-duplicate-primary-key
+        def insert_on_duplicate(table, conn, keys, data_iter):
+            insert_stmt = insert(table.table).values(list(data_iter))
+            on_duplicate_key_stmt = insert_stmt.on_duplicate_key_update(insert_stmt.inserted)
+            conn.execute(on_duplicate_key_stmt)
 
-    # 用整理过的 df_dic_list 而非原始的 df
-    pd.DataFrame(df_dic_list).to_sql(
-        table_name, engine, index=False, if_exists='append', method=insert_on_duplicate)
+        # 用清洗过的 df_dic_list，防止原始数据中np.nan pd.Timestamp存储不了
+        pd.DataFrame(df_dic_list).to_sql(
+            table_name, conn, index=False, if_exists='append',
+            chunksize=min(chunk, len(df_dic_list)), method=insert_on_duplicate)
+
     return len(df_dic_list)
 
 
@@ -217,8 +242,8 @@ def df_insert_existed(df: pd.DataFrame, dt_columns: list, dt_format: str,
         df_dic_list, col_name_list = df_to_dict(each_df, dt_columns, dt_format)
         if not df_dic_list:
             continue
-        # sqlalchemy表名字段名的冒号问题 https://www.cnblogs.com/i-love-python/p/11593501.html -->使用pd.to_sql一般能解决
-        res = _insert_c(df_dic_list, col_name_list, engine, table_name, ignore_none)
+        # sqlalchemy表名字段名含有特殊字符):的问题 https://www.cnblogs.com/i-love-python/p/11593501.html -->使用pd.to_sql一般能解决
+        res = _insert_c(df_dic_list, col_name_list, engine, table_name, ignore_none)  # fixme 使用不同的插入方法
         insert_count += res
 
     logger.info(f'任务表格 {table_name} 任务操作{insert_count} 任务数据{df.shape}')
