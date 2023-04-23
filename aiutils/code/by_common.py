@@ -4,12 +4,11 @@
 
 import warnings
 import datetime
-from copy import deepcopy
 from typing import Dict
 
 from aiutils.cache import MemoryCache
 from aiutils.code.exchange_iso import ExchangeISO
-from aiutils.code.exchange_map import exchange_ud, exchange_wind, exchange_vnpy
+from aiutils.code.exchange_map import exchange_ud, exchange_wind, exchange_vnpy, MapTotal
 from aiutils.code.tools import _split_by_iter, sym_dot_exg_split
 
 
@@ -24,7 +23,7 @@ def code_by_common(api_code: str, api_exchange_map: Dict[str, ExchangeISO] = {},
         res = _code_by_common(api_code, api_exchange_map)
         return res.upper()
     except Exception as e:
-        msg = f"转换编码失败，返回原值 {api_code} :{e}"
+        msg = f"转换编码失败返回原值{api_code} : {e}"
         if error_raise:
             raise RuntimeError(msg)
         else:
@@ -68,9 +67,8 @@ def _no_dot(api_code) -> str:
 def _with_dot(api_code, api_exchange_map: Dict[str, ExchangeISO] = {}):
     """ 编码中有分割符，需要转换exchange为ISO """
     assert '.' in api_code, f'处理的是含有dot的情况'
-    map_total = deepcopy(api_exchange_map)
-    map_total.update(exchange_wind())
-    map_total.update(exchange_vnpy())
+    map_total = MapTotal().update(exchange_wind()).update(exchange_vnpy())
+    map_total.update(api_exchange_map)
 
     one, two = api_code.split('.')
     if one in map_total.keys():  # exg放在前面的情况

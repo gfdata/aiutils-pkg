@@ -1,4 +1,10 @@
-1.5.0
+1.5.1
+
+# 1.5.0
+
+## aiutils.code.exchange_map.MapTotal
+
+作为常用的映射关系使用，参考 aiutils/code/by_common.py:71
 
 ## aiutils.code
 
