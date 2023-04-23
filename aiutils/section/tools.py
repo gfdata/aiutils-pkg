@@ -5,7 +5,7 @@
 import datetime
 from collections import namedtuple
 
-from aiutils.code.unique_exchange import ExchangeISO, ExchangeMap
+from aiutils.code.exchange_iso import ExchangeISO
 
 THIRD_DT_FORMAT_S = '%Y-%m-%d %H:%M:%S'
 
@@ -46,7 +46,7 @@ class SectionBoundary:
     @classmethod
     def get(cls, exg_str: str) -> SectionBoundaryParams:
         if isinstance(exg_str, str):
-            obj = ExchangeMap.data.get(exg_str.upper())
+            obj = ExchangeISO[exg_str.upper()]
         else:
             assert isinstance(exg_str, ExchangeISO), f'参数要求为Enum中的对象'
             obj = exg_str

@@ -5,6 +5,7 @@
 import hashlib
 import pickle
 from pathlib import Path
+from typing import Union
 
 from pydantic import BaseModel
 
@@ -28,7 +29,12 @@ class StrategyIdentify:
     def __str__(self):
         return str(self.__class__.__name__) + ":" + "+".join([self.id_name, self.id_script, self.id_vars])
 
+    def get_str(self):
+        """ 获取唯一字符串；使用'+'拼接三个id要素 """
+        return "+".join([self.id_name, self.id_script, self.id_vars])
+
     def get_result_obj(self, **kwargs) -> ResultAbstract:
+        """ 获取存储对象 """
         if self.save_type == 'file':
             from aiutils.rqutils.saveResult import ResultFile
             obj = ResultFile(id_name=self.id_name,
@@ -58,7 +64,7 @@ def generate_id_script(file_path, relative_path):
     return id_script
 
 
-def generate_id_vars(context_vars: dict, explicit_keys: list, params_model_class=None):
+def generate_id_vars(context_vars: dict, explicit_keys: Union[list, None], params_model_class=None):
     """ 常用的id_vars生成规则
     :param context_vars: 传给context的变量
     :param explicit_keys: 不在BaseParams中的参数，需要显式体现在id字符串中

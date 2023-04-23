@@ -1,4 +1,18 @@
-1.4.2
+1.5.0
+
+## aiutils.code
+
+* 重构内部exchange写法
+
+## aiutils.code.by_common.code_by_common
+
+* 参数exchange_map，默认值为空
+
+## aiutils.rqutils.check
+
+* get_phase_datetime 获取运行状态及时间
+
+# 1.4.2
 
 ## aiutils.rqutils.strategy_identify.generate_id_vars
 

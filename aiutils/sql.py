@@ -162,16 +162,15 @@ def _insert_c(df_dic_list, col_name_list,
             temp = _insert_c_chunk(df_dic_list, col_name_list,
                                    engine, table_name, ignore_none, chunk)
         except Exception as e:
-            res = None
+            status, result = e, None
         else:
-            e = None
-            res = temp
+            status, result = None, temp
             break
     # 判断结果
-    if isinstance(e, Exception):
-        raise e
+    if isinstance(status, Exception):
+        raise status
     else:
-        return res
+        return result
 
 
 def _insert_c_chunk(df_dic_list, col_name_list,
