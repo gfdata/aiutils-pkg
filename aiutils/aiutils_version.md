@@ -1,5 +1,7 @@
 1.5.1
 
+## aiuitls.optMysql改名aiutils.opt_mysql
+
 # 1.5.0
 
 ## aiutils.code.exchange_map.MapTotal

@@ -3,14 +3,12 @@
 # @Author：lhf
 # ----------------------
 from typing import Dict
-
-from aiutils.future_classify import FutureClassify
-from aiutils.singleton import SingletonType
 from .exchange_iso import ExchangeISO
 
 
 def exchange_ud() -> Dict[str, ExchangeISO]:
     """ 品种字母，对应ExchangeISO """
+    from aiutils.future_classify import FutureClassify
     commodity = FutureClassify.all_data()['exchange_iso'].to_dict()
     # 一些特殊的情况
     total = {

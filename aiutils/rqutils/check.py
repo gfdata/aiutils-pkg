@@ -38,7 +38,7 @@ def get_phase_datetime(context) -> PhaseDatetime:
     phase = ExecutionContext.phase()
     # 时间
     cdt = env.calendar_dt  # 自然日，时分秒日频率下都是000分钟 频率下才带上
-    tdt = env.trading_dt  # 交易日，时分秒都是000  todo 验证是否如此
+    tdt = env.trading_dt  # 交易日  todo 验证是否 时分秒都是000
     # 已结束的交易日
     # 注意截取可观测时间，参考源码 rqalpha.model.bar.BarObject.mavg/rqalpha.data.trading_dates_mixin.TradingDatesMixin
     if phase in [
@@ -58,7 +58,7 @@ def get_phase_datetime(context) -> PhaseDatetime:
 
 
 # 交易日定时触发函数------------------------------------------------------------------------------------
-def trading_calendar_trigger(now_td, choose_freq, choose_day) -> bool:
+def trading_calendar_trigger(now_td, choose_freq:str, choose_day:int) -> bool:
     """
     用于定时触发任务；判断now_td是否正好满足定时频率
     :param now_td: 传入的交易日，会忽略时分秒部分

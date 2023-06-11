@@ -13,8 +13,8 @@ from aiutils.cache import ttl_cache
 from aiutils.sql_retrieve import compile_query, check_no_join
 from aiutils.orm_eval import eval_column_repr as _eval_column  # eval_column_repr 写法
 
-from aiutils.optMysql.config import AIUTILS_MYSQL_CONFIG
-from aiutils.optMysql.common import ByMysql
+from aiutils.opt_mysql.config import AIUTILS_MYSQL_CONFIG
+from aiutils.opt_mysql.common import ByMysql
 
 
 def _get_session():

@@ -20,9 +20,19 @@ def df_col_dt_like(df: pd.DataFrame, col_name) -> bool:
     elif hasattr(df[col_name], "to_pydatetime"):
         return True
     elif df[col_name].dtype.name == 'object':  # 很多情况下，时间列未作转化时，dtype为object
-        temp = df[col_name].iloc[0]
-        if isinstance(temp, datetime.datetime) or isinstance(temp, datetime.date):
-            return True
+        for x in df[col_name]:
+            if isinstance(x, datetime.datetime) or isinstance(x, datetime.date):
+                return True
+        # # 列举几个进行检查
+        # temp = df[col_name].iloc[0]
+        # if isinstance(temp, datetime.datetime) or isinstance(temp, datetime.date):
+        #     return True
+        # temp = df[col_name].iloc[int(len(df) / 2)]
+        # if isinstance(temp, datetime.datetime) or isinstance(temp, datetime.date):
+        #     return True
+        # temp = df[col_name].iloc[-1]
+        # if isinstance(temp, datetime.datetime) or isinstance(temp, datetime.date):
+        #     return True
 
     # 否则返回False
     return False

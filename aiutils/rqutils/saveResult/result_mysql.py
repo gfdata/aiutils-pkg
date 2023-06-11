@@ -7,9 +7,9 @@ from copy import deepcopy
 
 import pandas as pd
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Date, Float, Text
+from sqlalchemy import Column, Integer, String, Date, Float, Text, inspect
 
-from aiutils.optMysql.engine import StoreMysqlEngine
+from aiutils.opt_mysql.engine import StoreMysqlEngine
 from aiutils.pandas_obj import df_col_dt_like
 from aiutils.sql import df_insert
 from aiutils.json_obj import jsonable_encoder
@@ -46,7 +46,11 @@ class ResultMysql(ResultAbstract):
         return str(self._engine.url) + '\nsid=' + str(self._sid_str)
 
     def _query_sid_router(self):
-        if not self._engine.has_table(AllSidRouter.__tablename__):
+        try:
+            temp = self._engine.has_table(AllSidRouter.__tablename__)  # sqlalchemy 1.4版本后弃用
+        except AttributeError:
+            temp = inspect(self._engine).has_table(AllSidRouter.__tablename__)  # sqlalchemy版本2.0以上 使用insp
+        if not temp:
             Base.metadata.create_all(self._engine)
         # 查找与更新
         with with_db_session(self._engine) as session:

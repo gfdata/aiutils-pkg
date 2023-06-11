@@ -18,10 +18,10 @@ class _MysqlConfig(metaclass=SingletonTypeThreadSafe):
         },
         "engine_params": {
             "//": "创建engine的参数设置",
-            "pool_size": 50,
-            "max_overflow": 25,
+            "pool_size": 10,  # 连接池大小
+            "max_overflow": 5,  # 最大允许溢出连接池大小的连接数量
             "pool_timeout": 360,
-            "pool_recycle": 3600,
+            "pool_recycle": 3600,  # 连接回收时间，这个值必须要比数据库自身配置的interactive_timeout值小
             "pool_pre_ping": True,
         },
 
