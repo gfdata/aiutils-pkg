@@ -3,7 +3,6 @@
 # @Author：lhf
 # ----------------------
 import os
-from pathlib import Path
 from typing import Optional, Union
 from functools import lru_cache
 
@@ -15,38 +14,35 @@ from aiutils.singleton import SingletonType
 
 
 @lru_cache()
-def _pd_read_excel(file, file_t):  # file_t参数，只为了方便cache识别
-    # xlrd 1.2.0以下才支持xlsx，2.0不支持；pandas 1.3.0 可用openpyxl引擎
+def _pd_read_excel(file, file_t):
+    """
+    * file_t参数，只为了方便cache识别
+    * 函数内read_excel参数，要适配所读取的文件内数据位置
+    """
     try:
-        import xlrd
-        df = pd.read_excel(file, index_col=0, skiprows=1)  # 已经设置了index_col为索引列
+        import xlrd  # xlrd 1.2.0以下才支持xlsx，2.0不支持；pandas 1.3.0 可用openpyxl引擎
+        df = pd.read_excel(file, index_col=0, skiprows=1)
     except Exception as e:
         df = pd.read_excel(file, index_col=0, skiprows=1, engine="openpyxl")
-
+    # 整理检查
     df = df.dropna(axis=1, how='all').dropna(axis=0, how='all')
-    # 检查，表格数据要满足exchange_iso，否则需要修改excel文件
     assert all([x.isupper() for x in df.index]), '品种名称要求：全为大写字母'
+    # 检查，表格数据要满足exchange_iso，否则需要修改excel文件
     assert all([x in ExchangeISO.__members__.keys() for x in df['exchange_iso']]), '品种交易所要求：符合ExchangeISO规范'
-    df['start_date'] = pd.to_datetime(df['start_date'])
-    df['end_date'] = pd.to_datetime(df['end_date'])
+    df['list_start'] = pd.to_datetime(df['list_start'])
+    df['list_end'] = pd.to_datetime(df['list_end'])
     return df.sort_index()
 
 
 class _FutureClassify(metaclass=SingletonType):
-    def save(self):
-        """ excel数据较少，手动更新即可 """
-        self.logger.info('excel存储：手动更新即可')
-
-    def __init__(self, file_dir=None, file_name='future_classify.xlsx'):
+    def __init__(self):
         """
         :param file_dir: 文件所在目录，默认使用 aiutils包目录下的；文件名
         """
         self.logger = Logger(self.__class__.__name__)
-        if not file_dir:
-            file = Path(__file__).parent.parent.joinpath(file_name)
-        else:
-            file = Path(file_dir).joinpath(file_name)
-        if not file.exists():
+        # 默认读取的
+        file = os.path.abspath('future_classify.xlsx')
+        if not os.path.exists(file):
             raise FileNotFoundError(f'所需文件不存在 {file}')
         else:
             self.file = file

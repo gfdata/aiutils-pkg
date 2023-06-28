@@ -1,6 +1,16 @@
-1.5.1
+1.6.0
+
+## aiutils.api
+
+新增模块，原有calendar和future_classify并入其中
+
+## aiutils.code.exchange_iso
+
+增加`北京证券交易所`
 
 ## aiuitls.optMysql改名aiutils.opt_mysql
+
+适配最新版本Sqlalchemy>=2.0
 
 # 1.5.0
 

@@ -11,7 +11,7 @@ from sqlalchemy import Column, Integer, String, Date, Float, Text, inspect
 
 from aiutils.opt_mysql.engine import StoreMysqlEngine
 from aiutils.pandas_obj import df_col_dt_like
-from aiutils.sql import df_insert
+from aiutils.sql import df_insert, repair_has_table
 from aiutils.json_obj import jsonable_encoder
 from aiutils.sql_session import with_db_session
 
@@ -46,11 +46,8 @@ class ResultMysql(ResultAbstract):
         return str(self._engine.url) + '\nsid=' + str(self._sid_str)
 
     def _query_sid_router(self):
-        try:
-            temp = self._engine.has_table(AllSidRouter.__tablename__)  # sqlalchemy 1.4版本后弃用
-        except AttributeError:
-            temp = inspect(self._engine).has_table(AllSidRouter.__tablename__)  # sqlalchemy版本2.0以上 使用insp
-        if not temp:
+        has_table = repair_has_table(self._engine, AllSidRouter.__tablename__)
+        if not has_table:
             Base.metadata.create_all(self._engine)
         # 查找与更新
         with with_db_session(self._engine) as session:

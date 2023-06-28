@@ -2,15 +2,26 @@
 import hashlib
 import sys
 from typing import List, Tuple
-
 import pandas as pd
-from sqlalchemy import Table, MetaData, NVARCHAR, Integer, Float, DateTime, text
+import sqlalchemy
+from sqlalchemy import Table, MetaData, NVARCHAR, Integer, Float, DateTime, text, inspect
 from sqlalchemy.exc import IntegrityError
 from logbook import Logger
 
 from .pandas_obj import df_col_dt_like, df_to_dict
 from .list_obj import split_iter
 from .sql_session import with_db_session, get_db_session
+
+
+def repair_has_table(engine, table_name: str) -> bool:
+    """ has_table判断，兼容sqlalchemy不同版本 """
+    v = str(sqlalchemy.__version__)
+    if v >= '2.0':
+        return inspect(engine).has_table(table_name)  # sqlalchemy版本2.0以上
+    elif v <= '2.0':
+        return engine.has_table(table_name)
+    else:
+        raise ValueError(f'sqlalchemy版本无法判断 got {v}')
 
 
 def df_types_sql(df: pd.DataFrame):
@@ -48,8 +59,7 @@ def df_insert(df: pd.DataFrame, dt_columns: list, dt_format: str,
     :return:
     """
     logger = Logger(sys._getframe().f_code.co_name)
-
-    has_table = engine.has_table(table_name)
+    has_table = repair_has_table(engine, table_name)
     if has_table:
         insert_count = df_insert_existed(df, dt_columns, dt_format, table_name, engine, ignore_none, chunksize, add_col)
         return insert_count
@@ -73,7 +83,7 @@ def df_insert(df: pd.DataFrame, dt_columns: list, dt_format: str,
             FROM information_schema.columns 
             WHERE table_schema=:schema AND table_name=:table_name"""
         with with_db_session(engine) as session:
-            table = session.execute(qry_column_type, params={'schema': schema, 'table_name': table_name})
+            table = session.execute(text(qry_column_type), params={'schema': schema, 'table_name': table_name})
             column_type_dic = dict(table.fetchall())
             praimary_keys_len, col_name_last, col_name_sql_str_list = len(primary_keys), None, []
             for num, col_name in enumerate(primary_keys):
@@ -90,10 +100,10 @@ def df_insert(df: pd.DataFrame, dt_columns: list, dt_format: str,
             #     ADD PRIMARY KEY (`ths_code`, `time`)""".format(table_name=table_name)
             primary_keys_str = "`" + "`, `".join(primary_keys) + "`"
             add_primary_key_str = f",\nADD PRIMARY KEY ({primary_keys_str})"
-            chg_pk_str = text(f"ALTER TABLE `{table_name}` \n" + "\n".join(col_name_sql_str_list) + add_primary_key_str)
+            chg_pk_str = f"ALTER TABLE `{table_name}` \n" + "\n".join(col_name_sql_str_list) + add_primary_key_str
             logger.info('创建表格 %s 及主键 %s 插入数据%s ' % (table_name, primary_keys, temp.shape))
             try:
-                session.execute(chg_pk_str)  # FIXME table_name含有'):{字母}' 会出错 --> 目前只能函数之外先执行建表
+                session.execute(text(chg_pk_str))  # FIXME table_name含有'):{字母}' 会出错 --> 目前只能函数之外先执行建表
             except IntegrityError as e:
                 # except Exception as e: # 其他异常 调用table_drop_duplicate也解决不了，所以指定捕捉 IntegrityError
                 logger.exception(
@@ -124,7 +134,7 @@ def _insert_a(df_dic_list, col_name_list,
             params=','.join([f':{x}' for x in col_name_list]),
             update=','.join(generated_directive),
         )
-        rslt = session.execute(sql_str, params=df_dic_list)
+        rslt = session.execute(text(sql_str), params=df_dic_list)
         session.commit()
     return rslt.rowcount
 
@@ -150,7 +160,7 @@ def _insert_b(df_dic_list, col_name_list,
             params=','.join([f':{x}' for x in col_name_list_num.values()]),
             update=','.join(generated_directive),  # 字段名称含有 ):字母，参数化会出错-->见下方异常处理
         )
-        rslt = session.execute(sql_str, params=df_dic_list2)
+        rslt = session.execute(text(sql_str), params=df_dic_list2)
         session.commit()
     return rslt.rowcount
 
@@ -179,7 +189,7 @@ def _insert_c_chunk(df_dic_list, col_name_list,
     # 可能出现连接超时的问题 -->使用conn 参考 https://www.coder.work/article/385432 ; 还需要chunksize，设置任务了小一些才能解决
     with engine.connect() as conn:
         # sac = conn.begin()  # 不能开启事务；会导致后面pd.to_sql执行无报错，但实际没有存储进去
-        conn.execute("show databases; ").fetchall()
+        conn.execute(text("show databases;")).fetchall()
 
         # rslt = 1
         # for i in range(len(df_dic_list)):
@@ -192,13 +202,16 @@ def _insert_c_chunk(df_dic_list, col_name_list,
         #         rslt += 1
         # return rslt
 
-        from sqlalchemy.dialects.mysql import insert
-        # pd.to_sql加上method参数；参考 https://9to5answer.com/pandas-to_sql-fails-on-duplicate-primary-key
         def insert_on_duplicate(table, conn, keys, data_iter):
+            # pd.to_sql加上method参数；参考 https://9to5answer.com/pandas-to_sql-fails-on-duplicate-primary-key
+            from sqlalchemy.dialects.mysql import insert
             insert_stmt = insert(table.table).values(list(data_iter))
             on_duplicate_key_stmt = insert_stmt.on_duplicate_key_update(insert_stmt.inserted)
+            # conn.execute(text(on_duplicate_key_stmt)) # 传入的是个Insert对象，不用text
             conn.execute(on_duplicate_key_stmt)
 
+        if sqlalchemy.__version__ >= '2.0':
+            raise RuntimeError(f'pandas.to_sql不适配sqlalchemy版本2.0')
         # 用清洗过的 df_dic_list，防止原始数据中np.nan pd.Timestamp存储不了
         pd.DataFrame(df_dic_list).to_sql(
             table_name, conn, index=False, if_exists='append',
@@ -214,7 +227,7 @@ def df_insert_existed(df: pd.DataFrame, dt_columns: list, dt_format: str,
     先split_ilter整个df，再进行df_to_dict略快一点
     """
     logger = Logger(sys._getframe().f_code.co_name)
-    has_table = engine.has_table(table_name)
+    has_table = repair_has_table(engine, table_name)
     if not has_table:
         raise RuntimeError('{} not in {}，需先创建或使用函数`df_insert` '.format(table_name, engine))
     # 检查是否增加新列
@@ -257,7 +270,7 @@ def table_get_keys(table_name, engine, table_schema):
         FROM information_schema.columns
         WHERE table_schema=:table_schema AND table_name=:table_name and COLUMN_KEY='PRI'"""
     with with_db_session(engine) as session:
-        table = session.execute(sql_str, params={
+        table = session.execute(text(sql_str), params={
             'table_schema': table_schema,
             'table_name': table_name,
         })
@@ -273,7 +286,7 @@ def table_get_columns(table_name, engine, schema) -> List["Tuple"]:
         FROM information_schema.columns
         WHERE table_schema=:table_schema AND table_name=:table_name"""
     with with_db_session(engine) as session:
-        table = session.execute(sql_str, params={
+        table = session.execute(text(sql_str), params={
             'table_schema': schema,
             'table_name': table_name,
         })
@@ -328,15 +341,15 @@ def table_drop_duplicate_keep(table_name, engine, schema, columns: list, keep_by
     with with_db_session(engine) as session:
         if add_sql:
             try:
-                session.execute(add_sql)
+                session.execute(text(add_sql))
             except:
                 pass
 
-        crud = session.execute(dup_sql)
+        crud = session.execute(text(dup_sql))
 
         if del_sql:
             try:
-                session.execute(del_sql)
+                session.execute(text(del_sql))
             except:
                 pass
         return crud
@@ -365,13 +378,11 @@ def table_drop_duplicate_rows(table_name, engine, schema, columns: list):
     """
     drop_raw_sql = f""" DROP TABLE `{table_name}` """
     rename_sql = f""" RENAME TABLE {table_name_copy} TO `{table_name}` """
-    session = get_db_session(engine)
-
     with with_db_session(engine) as session:
-        crud = session.execute(drop_sql)
-        crud_ = session.execute(create_sql)
-        crud = session.execute(drop_raw_sql)
-        crud = session.execute(rename_sql)
+        crud = session.execute(text(drop_sql))
+        crud_ = session.execute(text(create_sql))
+        crud = session.execute(text(drop_raw_sql))
+        crud = session.execute(text(rename_sql))
         session.commit()
     return crud_
 
@@ -397,7 +408,7 @@ def table_add_col(engine, table_name, col_name, col_type_str: str):
             table_name, col_name, col_type_str, after_col_name
         )
         with with_db_session(engine) as session:
-            session.execute(add_col_sql_str)
+            session.execute(text(add_col_sql_str))
             session.commit()
         logger.info('%s 添加 %s [%s] 列成功' % (table_name, col_name, col_type_str))
 
@@ -412,38 +423,38 @@ def table_drop_duplicate(table_name, engine, primary_key=None):
     :return:
     """
     logger = Logger(sys._getframe().f_code.co_name)
-
-    table_name_bak = f"{table_name}_bak"
-    has_table = engine.has_table(table_name)
+    has_table = repair_has_table(engine, table_name)
     if not has_table:
         return
-    has_table = engine.has_table(table_name_bak)
+    table_name_bak = f"{table_name}_bak"
+    has_bak = repair_has_table(engine, table_name_bak)
     with with_db_session(engine) as session:
-        if has_table:
+        if has_bak:
             sql_str = f"drop table {table_name_bak}"
-            session.execute(sql_str)
+            session.execute(text(sql_str))
             logger.debug('删除现有 %s 表' % table_name_bak)
 
         sql_str = f"create table {table_name_bak} like `{table_name}` "
-        session.execute(sql_str)
+        session.execute(text(sql_str))
         logger.debug('创建 %s 表' % table_name_bak)
+
         if primary_key is not None:
             key_str = ', '.join(primary_key)
             sql_str = f"""alter table {table_name_bak}
                 add constraint {table_name}_pk
                 primary key ({key_str})"""
-            session.execute(sql_str)
+            session.execute(text(sql_str))
             logger.debug('创建 %s 表 主键 %s：' % (table_name_bak, key_str))
 
         sql_str = f"replace into {table_name_bak} select * from `{table_name}` "
-        session.execute(sql_str)
+        session.execute(text(sql_str))
         session.commit()
         logger.debug('插入数据 %s -> %s' % (table_name, table_name_bak))
         sql_str = f"drop table `{table_name}`"
-        session.execute(sql_str)
+        session.execute(text(sql_str))
         logger.debug('删除 %s 表' % table_name)
         sql_str = f"rename table {table_name_bak} to `{table_name}` "
-        session.execute(sql_str)
+        session.execute(text(sql_str))
         logger.debug('重命名 %s --> %s' % (table_name_bak, table_name))
 
     logger.info('完成主键去重 %s' % (table_name))
