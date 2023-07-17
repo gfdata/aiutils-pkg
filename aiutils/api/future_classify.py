@@ -3,14 +3,16 @@
 # @Author：lhf
 # ----------------------
 import os
+from pathlib import Path
 from typing import Optional, Union
 from functools import lru_cache
-
 from logbook import Logger
 import pandas as pd
 
 from aiutils.code.exchange_iso import ExchangeISO
 from aiutils.singleton import SingletonType
+
+_FILE = Path(__file__).absolute()
 
 
 @lru_cache()
@@ -35,13 +37,13 @@ def _pd_read_excel(file, file_t):
 
 
 class _FutureClassify(metaclass=SingletonType):
-    def __init__(self):
+    def __init__(self, file_dir=_FILE.parent):
         """
         :param file_dir: 文件所在目录，默认使用 aiutils包目录下的；文件名
         """
         self.logger = Logger(self.__class__.__name__)
         # 默认读取的
-        file = os.path.abspath('future_classify.xlsx')
+        file = os.path.join(file_dir, 'future_classify.xlsx')
         if not os.path.exists(file):
             raise FileNotFoundError(f'所需文件不存在 {file}')
         else:

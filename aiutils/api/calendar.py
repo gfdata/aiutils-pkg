@@ -5,11 +5,14 @@
 import os
 import bisect
 import datetime
+from pathlib import Path
 from typing import List
 import pandas as pd
 from aiutils import dt_convert
 from aiutils.cache import lru_cache
 from aiutils.singleton import SingletonType
+
+_FILE = Path(__file__).absolute()
 
 
 @lru_cache()
@@ -46,10 +49,10 @@ class _TradeCalendar(metaclass=SingletonType):
         self.data_dict[market] = list(sorted(dates))  # 升序list，具体值为的dates_int8格式
         return self.data_dict[market]
 
-    def __init__(self):
+    def __init__(self, file_dir=_FILE.parent):
         self.data_dict = {}
         # 默认读取的
-        file = os.path.abspath('calendar.xlsx')
+        file = os.path.join(file_dir, 'calendar.xlsx')
         self.set('cn', _pd_read_excel(file, os.path.getmtime(file))['SSE'])
 
     def get_div(self, market) -> tuple:

@@ -1,32 +1,32 @@
 1.6.0
 
-## aiutils.api
+## `新增` aiutils.api
 
 新增模块，原有calendar和future_classify并入其中
 
-## aiutils.code.exchange_iso
+## `升级` aiutils.code.exchange_iso
 
 增加`北京证券交易所`
 
-## aiuitls.optMysql改名aiutils.opt_mysql
+## `重命名` aiuitls.optMysql改名aiutils.opt_mysql
 
 适配最新版本Sqlalchemy>=2.0
 
 # 1.5.0
 
-## aiutils.code.exchange_map.MapTotal
+## `修复` aiutils.code.exchange_map.MapTotal
 
 作为常用的映射关系使用，参考 aiutils/code/by_common.py:71
 
-## aiutils.code
+## `重构` aiutils.code
 
 * 重构内部exchange写法
 
-## aiutils.code.by_common.code_by_common
+## `修复` aiutils.code.by_common.code_by_common
 
 * 参数exchange_map，默认值为空
 
-## aiutils.rqutils.check
+## '新增` aiutils.rqutils.check
 
 * get_phase_datetime 获取运行状态及时间
 

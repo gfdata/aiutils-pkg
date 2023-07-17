@@ -211,7 +211,7 @@ def _insert_c_chunk(df_dic_list, col_name_list,
             conn.execute(on_duplicate_key_stmt)
 
         if sqlalchemy.__version__ >= '2.0':
-            raise RuntimeError(f'pandas.to_sql不适配sqlalchemy版本2.0')
+            raise RuntimeError(f'pandas.to_sql暂不支持sqlalchemy版本2.0')
         # 用清洗过的 df_dic_list，防止原始数据中np.nan pd.Timestamp存储不了
         pd.DataFrame(df_dic_list).to_sql(
             table_name, conn, index=False, if_exists='append',
