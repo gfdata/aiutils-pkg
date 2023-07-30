@@ -1,4 +1,10 @@
-1.6.0
+1.6.1
+
+## aiutils.api.future_classify
+
+增加新品种上市日期和分类
+
+# 1.6.0
 
 ## `新增` aiutils.api
 
