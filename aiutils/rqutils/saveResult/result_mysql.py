@@ -37,15 +37,43 @@ class ResultMysql(ResultAbstract):
         self._save_db_name = save_db_name
         self._engine = StoreMysqlEngine().get(save_db_name)
         self._sid_str = "+".join([self.id_name, self.id_script, self.id_vars])  # 建议与StrategyIdentify保持一致
-        self._tb_prefix = None
-        self._query_sid_router()
 
     @property
     def output_path(self):
         """ 此处output_path只是为了显示，无实际作用 """
         return str(self._engine.url) + '\nsid=' + str(self._sid_str)
 
-    def _query_sid_router(self):
+    def is_exist(self) -> bool:
+        try:
+            _tb_prefix = self._record_read()
+        except ValueError:
+            return False
+        else:
+            return True
+
+    def _record_read(self) -> str:
+        """ 只做记录查找 """
+        has_table = repair_has_table(self._engine, AllSidRouter.__tablename__)
+        if not has_table:
+            Base.metadata.create_all(self._engine)
+        with with_db_session(self._engine) as session:
+            obj = session.query(AllSidRouter).filter_by(sid_str=self._sid_str).first()
+            if not obj:
+                raise ValueError(f'AllSidRouter没有记录 {self._sid_str}')
+            else:
+                return '-'.join([str(obj.id_name), str(obj.id)])
+
+    def read_common_df(self, file_name, sheet_name, use_cache=True):
+        """ read操作，不存在时不做添加 """
+        table_name = self._gen_table_name(file_name, sheet_name, create=False)
+        if not self._engine.has_table(table_name):
+            raise ValueError(f'缺少表格 {table_name}')
+        df = pd.read_sql(f"select * from `{table_name}`", self._engine)
+        return df
+
+    # ----------------------------------------------------------------------------------------------------------
+    def _record_read_create(self) -> str:
+        """ 记录查找，没有则进行记录创建 """
         has_table = repair_has_table(self._engine, AllSidRouter.__tablename__)
         if not has_table:
             Base.metadata.create_all(self._engine)
@@ -59,31 +87,23 @@ class ResultMysql(ResultAbstract):
             session.add(obj)
             session.commit()
             assert obj.id is not None and obj.id_name  # 要用到自增id
-            self._tb_prefix = '-'.join([str(obj.id_name), str(obj.id)])
+        return '-'.join([str(obj.id_name), str(obj.id)])
 
-    def read_common_df(self, file_name, sheet_name, use_cache=True):
-        table_name = self._gen_table_name(file_name, sheet_name)
-        if not self._engine.has_table(table_name):
-            raise ValueError(f'缺少表格 {table_name}')
-        df = pd.read_sql(f"select * from `{table_name}`", self._engine)
-        return df
-
-    def is_exist(self) -> bool:
-        if self._engine.has_table(self._tb_prefix):
-            return True
+    def _gen_table_name(self, file_name, sheet_name, create=True):
+        if create:
+            _tb_prefix = self._record_read_create()
         else:
-            return False
-
-    def _gen_table_name(self, file_name, sheet_name):
+            _tb_prefix = self._record_read()
         suffix_list = [x for x in (file_name, sheet_name) if x]
         if suffix_list:
             suffix = '-'.join(suffix_list)
-            table_name = self._tb_prefix + "+" + suffix
+            table_name = _tb_prefix + "+" + suffix
         else:
-            table_name = self._tb_prefix
+            table_name = _tb_prefix
         return table_name
 
     def save_common_df(self, file_name, sheet_name, df, **kwargs):
+        """ save操作，先查询不存在则添加记录 """
         # 表格规则
         if df is None or df.empty:
             return

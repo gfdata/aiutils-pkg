@@ -32,45 +32,55 @@ def trade_dict_real(d_real, diff_value=0):
             old_long = get_position(code, POSITION_DIRECTION.LONG)
             old_short = get_position(code, POSITION_DIRECTION.SHORT)
             user_log.debug(
-                f'平仓[至零] {code} 旧多 {old_long.direction} {old_long.quantity} 旧空 {old_short.direction} {old_short.quantity}')
+                f'平仓[多空归零]{code} 旧多{old_long.direction}+{old_long.quantity} 旧空{old_short.direction}-{old_short.quantity}')
             order_to(code, 0)
 
     # 调整多单
     for code, lots in long.items():
+        old_temp = get_position(code, POSITION_DIRECTION.SHORT)
+        if old_temp.quantity != 0:  # 使用order_to目标下单，其实可以不用这步判断
+            user_log.debug(f'做多[旧反向]{code} 已有{old_temp.direction}-{old_temp.quantity} 先平再开{lots}')
+            order_to(code, lots)
+
         old = get_position(code, POSITION_DIRECTION.LONG)
         # 新入场
         if old.quantity == 0:
-            user_log.debug(f'做多[新入场] {code} 已有 {old.direction} {old.quantity} 目标 {lots}')
+            user_log.debug(f'做多[新入场]{code} 已有{old.direction}+{old.quantity} 目标{lots}')
             order_to(code, lots)
         # 有旧持仓
         elif old.quantity != lots:
             if diff_value <= 0:  # 直接调整
-                user_log.debug(f'做多[旧调整] {code} 已有 {old.direction} {old.quantity} 目标 {lots}')
+                user_log.debug(f'做多[旧调整]{code} 已有{old.direction}+{old.quantity} 目标{lots}')
                 order_to(code, lots)
             else:  # 判断变动价值是否够大
                 ins = instruments(code)
                 price = history_bars(code, 1, '1d', 'close')[-1]
                 v = ins.contract_multiplier * price * abs(abs(old.quantity) - abs(lots))
                 if v > diff_value:
-                    user_log.debug(f'做多[旧调整]变动够大 {code} 已有 {old.direction} {old.quantity} 目标 {lots}')
+                    user_log.debug(f'做多[旧调整]变动够大{code} 已有{old.direction}+{old.quantity} 目标{lots}')
                     order_to(code, lots)
 
     # 调整空单
     for code, lots in short.items():
+        old_temp = get_position(code, POSITION_DIRECTION.LONG)
+        if old_temp.quantity != 0:  # 使用order_to目标下单，其实可以不用这步判断
+            user_log.debug(f'做空[旧反向]{code} 已有{old_temp.direction}+{old_temp.quantity} 先平再开{lots}')
+            order_to(code, lots)
+
         old = get_position(code, POSITION_DIRECTION.SHORT)
         # 新入场
         if old.quantity == 0:
-            user_log.debug(f'做空[新入场] {code} 已有 {old.direction} {old.quantity} 目标 {lots}')
+            user_log.debug(f'做空[新入场]{code} 已有{old.direction}-{old.quantity} 目标{lots}')
             order_to(code, lots)
         # 有旧持仓
         elif old.quantity != 0 - lots:
             if diff_value <= 0:
-                user_log.debug(f'做空[旧调整] {code} 已有 {old.direction} {old.quantity} 目标 {lots}')
+                user_log.debug(f'做空[旧调整]{code} 已有{old.direction}-{old.quantity} 目标{lots}')
                 order_to(code, lots)
             else:
                 ins = instruments(code)
                 price = history_bars(code, 1, '1d', 'close')[-1]
                 v = ins.contract_multiplier * price * abs(abs(old.quantity) - abs(lots))
                 if v > diff_value:
-                    user_log.debug(f'做空[旧调整]变动够大 {code} 已有 {old.direction} {old.quantity} 目标 {lots}')
+                    user_log.debug(f'做空[旧调整]变动够大{code} 已有{old.direction}-{old.quantity} 目标{lots}')
                     order_to(code, lots)

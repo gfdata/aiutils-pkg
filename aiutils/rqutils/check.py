@@ -10,6 +10,7 @@ import pandas as pd
 from rqalpha.apis import history_bars, get_previous_trading_date, Environment, ExecutionContext
 from rqalpha.const import EXECUTION_PHASE
 
+from aiutils import dt_convert
 from aiutils.cache import MemoryCache
 
 """
@@ -24,23 +25,30 @@ from aiutils.cache import MemoryCache
 class PhaseDatetime(NamedTuple):
     phase: EXECUTION_PHASE
     now: datetime.datetime
-    calendar_dt: datetime.datetime  # 自然日，时分秒为框架下的时间，一般同上面的now
-    trading_dt: datetime.datetime  # 交易日，时分秒为框架下的时间
-    trading_finish: datetime.datetime  # 已走完的交易日，时分秒000，date部分才有意义
+    calendar_dt: datetime.datetime  # 自然日
+    trading_dt: datetime.datetime  # 交易日
+    trading_finish: datetime.datetime  # 已走完的交易日
 
     def __str__(self):
         return ','.join([k + '=' + str(v) for k, v in self._asdict().items()])
 
 
 def get_phase_datetime(context) -> PhaseDatetime:
-    """ 获取运行状态，以及重要的时间概念 """
+    """
+    获取运行状态，以及重要的时间概念
+    * now-------------直接用context.now
+    * calendar_dt ----自然日；日频率通常状态000，after_trading状态时15:30
+    * trading_dt -----交易日；日频率通常状态000，after_trading状态时15:30
+    * trading_finish -已走完的交易日；只保留date部分，时分秒统一用000
+    :param context:
+    :return:
+    """
     env = Environment.get_instance()
     phase = ExecutionContext.phase()
     # 时间
-    cdt = env.calendar_dt  # 自然日，时分秒日频率下都是000分钟 频率下才带上
-    tdt = env.trading_dt  # 交易日  todo 验证是否 时分秒都是000
-    # 已结束的交易日
-    # 注意截取可观测时间，参考源码 rqalpha.model.bar.BarObject.mavg/rqalpha.data.trading_dates_mixin.TradingDatesMixin
+    cdt = env.calendar_dt
+    tdt = env.trading_dt
+    # 已结束的交易日；参考源码 rqalpha.model.bar.BarObject.mavg/rqalpha.data.trading_dates_mixin.TradingDatesMixin
     if phase in [
         EXECUTION_PHASE.AFTER_TRADING,
         EXECUTION_PHASE.FINALIZED,
@@ -58,7 +66,7 @@ def get_phase_datetime(context) -> PhaseDatetime:
 
 
 # 交易日定时触发函数------------------------------------------------------------------------------------
-def trading_calendar_trigger(now_td, choose_freq:str, choose_day:int) -> bool:
+def trading_calendar_trigger(now_td, choose_freq: str, choose_day: int) -> bool:
     """
     用于定时触发任务；判断now_td是否正好满足定时频率
     :param now_td: 传入的交易日，会忽略时分秒部分
@@ -67,13 +75,12 @@ def trading_calendar_trigger(now_td, choose_freq:str, choose_day:int) -> bool:
     :return:
     """
     # 忽略时分秒部分
-    _date = pd.to_datetime(now_td).date()
-    _date = pd.to_datetime(_date)
+    _date = pd.to_datetime(dt_convert.to_date(now_td).strftime('%Y-%m-%d'))
     res = False
     df = trading_calendar_number()
     if choose_freq == 'd':
         num = df.loc[_date, 'td_num']
-        if num % choose_day != 0:
+        if num % choose_day == 0:
             res = True
     elif choose_freq == 'w':
         num = df.loc[_date, 'td_week_num']

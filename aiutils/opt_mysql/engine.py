@@ -53,4 +53,4 @@ class StoreMysqlEngine(metaclass=SingletonType):
             self._engine_dict[db].connect()
 
         except Exception as e:
-            raise RuntimeError(f"{self.__class__.__name__}创建引擎失败：名称{db} |地址{url} |{os.linesep}{type(e)}:{e}")
+            raise RuntimeError(f"{self.__class__.__name__}创建引擎失败！名称 {db} | 地址{url} | {os.linesep}{type(e)}:{e}")

@@ -1,8 +1,14 @@
 1.6.1
 
-## aiutils.api.future_classify
+## `升级` aiutils.api.future_classify
 
 增加新品种上市日期和分类
+
+## `修复` aiutils.rqutils
+
+aiutils.rqutils.saveResult.result_mysql.ResultMysql 记录查询时不创建，数据存储时没有记录则新增
+
+aiutils.rqutils.check.get_phase_datetime 增加注释
 
 # 1.6.0
 
@@ -12,7 +18,7 @@
 
 ## `升级` aiutils.code.exchange_iso
 
-增加`北京证券交易所`
+增加 北京证券交易所
 
 ## `重命名` aiuitls.optMysql改名aiutils.opt_mysql
 
@@ -32,7 +38,7 @@
 
 * 参数exchange_map，默认值为空
 
-## '新增` aiutils.rqutils.check
+## `新增` aiutils.rqutils.check
 
 * get_phase_datetime 获取运行状态及时间
 
