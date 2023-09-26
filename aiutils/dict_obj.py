@@ -73,7 +73,7 @@ class AttrDict(object):
         return result_dict
 
 
-def dict_deep_update(from_dict, to_dict):
+def dict_deep_update(from_dict, to_dict) -> None:
     """
     嵌套字典的修改，会直接改变传入的to_dict对象；相同k层次才会修改对应的值，否则沿用to_dict原有的
     :param from_dict: 用于修改的字典

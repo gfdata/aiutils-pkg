@@ -8,9 +8,47 @@ from pyecharts.charts import Line, Grid
 from pyecharts import options as opts
 
 
+def plot_multi_line(df: pd.DataFrame, col_enhance=None,
+                    width='900px', height='450px'):
+    """ 绘制多条数据的折线图 """
+    from pyecharts.charts import Line
+    from pyecharts import options as opts
+
+    # 数据检查
+    temp = df.sort_index()
+    assert isinstance(temp.index, pd.DatetimeIndex), f'df要求index为时间索引'
+
+    # 图形对象
+    line = Line(init_opts=opts.InitOpts(width=width, height=height)).add_xaxis(
+        [x.strftime('%Y-%m-%d') for x in temp.index])
+    # 添加y值
+    for i in range(0, len(temp.columns)):
+        col = temp.columns[i]
+        if col == col_enhance:
+            line.add_yaxis(col, [x for x in temp[col]], linestyle_opts=opts.LineStyleOpts(width=2, color='red'))
+        else:
+            line.add_yaxis(col, [x for x in temp[col]],
+                           is_symbol_show=False,  # 去掉圆圈标识
+                           )
+    # 其他设置
+    line.set_global_opts(
+        legend_opts=opts.LegendOpts(is_show=True, type_='plain', pos_left='center'),
+        yaxis_opts=opts.AxisOpts(
+            type_='value', is_scale=True,  # 自适应的y轴刻度，需要type_='value'
+            splitline_opts=opts.SplitLineOpts(is_show=True),  # 网格线
+        ),
+        # 缩放可设置多种
+        datazoom_opts=[opts.DataZoomOpts(is_show=True), opts.DataZoomOpts(type_="inside")],
+        # 提示数据，十字光标
+        tooltip_opts=opts.TooltipOpts(is_show=True, trigger_on="mousemove | click", axis_pointer_type='cross'),
+    )
+    line.set_series_opts(label_opts=opts.LabelOpts(is_show=False))
+    return line
+
+
 def plot_two_grid(dfa: pd.DataFrame, dfb: pd.DataFrame,
                   dfa_text: pd.Series = None, dfb_text: pd.Series = None,
-                  strftime='%Y-%m-%d', gridw='1000px', gridh='800px'):
+                  strftime='%Y-%m-%d', gridw='900px', gridh='450px'):
     """
     两个图表区域，共用一个x轴联动展示
     :param dfa: 上方区域的数据
@@ -83,7 +121,8 @@ def plot_two_grid(dfa: pd.DataFrame, dfb: pd.DataFrame,
     return grid
 
 
-def plot_double_y(linea: pd.Series, lineb: pd.Series, strftime='%Y-%m-%d'):
+def plot_double_y(linea: pd.Series, lineb: pd.Series, strftime='%Y-%m-%d',
+                  width='900px', height='450px'):
     """
     双y轴画图，共用一个x轴
     :param linea:
@@ -103,7 +142,7 @@ def plot_double_y(linea: pd.Series, lineb: pd.Series, strftime='%Y-%m-%d'):
     assert isinstance(total.index, pd.DatetimeIndex), f'要求为时间索引'
 
     line_left = (
-        Line()
+        Line(init_opts=opts.InitOpts(width=width, height=height))
             # Line(init_opts=opts.InitOpts(theme=ThemeType.DARK))  # 选择主题
             .add_xaxis(list(total.index.strftime(strftime)))
             .add_yaxis(namea, total[namea], linestyle_opts=opts.LineStyleOpts(width=2))

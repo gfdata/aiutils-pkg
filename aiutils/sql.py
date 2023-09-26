@@ -59,6 +59,12 @@ def df_insert(df: pd.DataFrame, dt_columns: list, dt_format: str,
     :return:
     """
     logger = Logger(sys._getframe().f_code.co_name)
+    if primary_keys:
+        df = df.dropna(subset=primary_keys)
+    if df.empty:
+        logger.warn(f'数据去除主键空值后长度为零，不做存储！')
+        return
+
     has_table = repair_has_table(engine, table_name)
     if has_table:
         insert_count = df_insert_existed(df, dt_columns, dt_format, table_name, engine, ignore_none, chunksize, add_col)

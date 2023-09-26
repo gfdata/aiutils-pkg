@@ -20,9 +20,28 @@ def df_col_dt_like(df: pd.DataFrame, col_name) -> bool:
     elif hasattr(df[col_name], "to_pydatetime"):
         return True
     elif df[col_name].dtype.name == 'object':  # 很多情况下，时间列未作转化时，dtype为object
-        for x in df[col_name]:
-            if isinstance(x, datetime.datetime) or isinstance(x, datetime.date):
+        se = df[col_name].dropna()
+        if se.empty:
+            return False
+        else:
+            # temp = se.max() # 混合数据时有异常 TypeError: '>=' not supported between instances of 'float' and 'str'
+            temp = [se.iloc[0], se.iloc[int(len(se) / 2)], se.iloc[-1], ]  # 列举几个进行检查
+            for i in list(range(1, 10)):
+                try:
+                    temp.append(se.iloc[i])
+                    temp.append(se.iloc[-i])
+                except:
+                    pass
+            b = [isinstance(x, datetime.datetime) or isinstance(x, datetime.date) for x in temp]
+            if all(b) is True:
                 return True
+
+        # 遇到NAT这种判断有问题
+        # for x in df[col_name]:
+        #     if isinstance(x, datetime.datetime) or isinstance(x, datetime.date):
+        #         print(x)
+        #         return True
+
         # # 列举几个进行检查
         # temp = df[col_name].iloc[0]
         # if isinstance(temp, datetime.datetime) or isinstance(temp, datetime.date):
